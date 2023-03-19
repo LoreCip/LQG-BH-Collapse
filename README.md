@@ -6,6 +6,10 @@ This code implements the original formulation of the Weighted Essentially Non-Os
 
 W.i.P.
 
+## How to run the code
+
+W.i.P.
+
 ## Description of the physical problem
 
 W.i.P.
