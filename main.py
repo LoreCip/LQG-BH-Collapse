@@ -1,6 +1,6 @@
 import numpy as np
 
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 h = 1e-2
 nx = int(2 / h + 5)
