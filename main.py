@@ -1,38 +1,39 @@
 import numpy as np
-
-from src.fluxes import flux
-
 from tqdm import tqdm
 
 def main():
+    r = 3
     h = 1e-2
-    nx = int(2 / h + 5)
-    xs = np.linspace(-1, 1, nx)
-    # xs = np.array([np.NaN if (i == 0) or (i == 1) or (i ==    nx - 2) or (i == nx - 1) 
-    #                 else (i-2)*h - 1 for i in range(nx)])
-
-    # Phys
-    u_prev = 0.5 + np.sin(np.pi * xs)
-
-    dt = 1e-3
+    dt = 1e-3    
     N_it = 500
 
-    r = 2
+    if r == 2:
+        n_ghost = 1
+    elif r == 3:
+        n_ghost = 2
 
-    sol = np.zeros((len(u_prev), 3))
-    sol[:, 0] = u_prev.copy()
+    #### GRID
+    nx = int(2 / h + 1 + 2*n_ghost)
+    xs = np.array([(i-n_ghost)*h - 1 for i in range(nx)])
 
+    ### Initial Data
+    u_prev = np.ones(len(xs)) # 1 + phys + 1
+    # Phys
+    u_prev[n_ghost:-n_ghost] = np.sin(4 * np.pi * xs[n_ghost:-n_ghost])
+    # Ghosts
+    u_prev = PBC(u_prev, n_ghost)
+
+    sol = np.zeros((len(u_prev[n_ghost:-n_ghost]), 2))
+    sol[:, 0] = u_prev[n_ghost:-n_ghost].copy()
+
+    t = 0
     for i in tqdm(range(N_it)):
-        
-        
-
-
+        u_next = TDV_RK(r, u_prev, xs, h, dt, n_ghost)
         u_prev = u_next.copy()
 
-        if (i+1)*dt == 0.318:
-           sol[:, 1] = u_next.copy()
+        t = t + dt
 
-    sol[:, 2] = u_next.copy()
+    sol[:, 1] = u_next[n_ghost:-n_ghost].copy()
 
 
 def argparse():

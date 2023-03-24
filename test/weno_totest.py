@@ -1,25 +1,25 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from numba import njit
+# from numba import njit
 
-@njit
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+
+# @njit
 def f(u):
     return 0.5*u*u
 
-@njit
+# @njit
 def fp(u):
     return u
 
 
-def TDV_RK(r, u_prev, xs, h, dt):
+def TDV_RK(r, u_prev, xs, h, dt, n_ghost):
     if r == 2:
-        return TDV_RK3(u_prev, xs, h, dt)
+        return TDV_RK3(u_prev, xs, h, dt, n_ghost)
     elif r == 3:
-        return TDV_RK4(u_prev, xs, h, dt)
-    else:
-        raise Exception("Order not implemented! r = 2 or 3")
+        return TDV_RK4(u_prev, xs, h, dt, n_ghost)
 
-def TDV_RK3(u_prev, xs, h, dt):
+def TDV_RK3(u_prev, xs, h, dt, n_ghost):
     """
     ## TO OPTIMIZE
 
@@ -33,34 +33,34 @@ def TDV_RK3(u_prev, xs, h, dt):
     5**) Weighted mean btw t and t+3*dt/2 to find  t + dt
     """
     rr = np.zeros_like(u_prev)
-
+    
     # 1**)
-    for j in range(1, len(rr)-1):
+    for j in range(1, len(rr)-2):
         rr[j] = L(2, j, u_prev, xs, h)
     u_n1 = u_prev + dt * rr
-    u_n1 = PBC(u_n1)
+    u_n1 = PBC(u_n1, n_ghost)
 
     # 2**)
-    for j in range(1, len(rr)-1):
+    for j in range(1, len(rr)-2):
         rr[j] = L(2, j, u_n1, xs, h)
     u_n2 = u_n1 + dt * rr
-    u_n2 = PBC(u_n2)
+    u_n2 = PBC(u_n2, n_ghost)
 
     # 3**)
     u_n12 = 3 * u_prev / 4 + u_n2 / 4
-    u_n12 = PBC(u_n12)
+    u_n12 = PBC(u_n12, n_ghost)
 
     # 4**)
-    for j in range(1, len(rr)-1):
+    for j in range(1, len(rr)-2):
         rr[j] = L(2, j, u_n12, xs, h)
     u_n32 = u_n12 + dt * rr
-    u_n32 = PBC(u_n32)
+    u_n32 = PBC(u_n32, n_ghost)
 
     # 5**)
     u_final = u_prev / 3 + 2 * u_n32 / 3
-    return PBC(u_final)
+    return PBC(u_final, n_ghost)
 
-def TDV_RK4(u_prev, xs, h, dt):
+def TDV_RK4(u_prev, xs, h, dt, n_ghost):
     """
     uj_0 = u_prev[j]
     uj_1 = uj_0 + dt * L(uj_0)
@@ -73,20 +73,23 @@ def TDV_RK4(u_prev, xs, h, dt):
     r_j2 = np.zeros_like(u_prev)
     r_j3 = np.zeros_like(u_prev)
 
-    for j in range(1, len(u_prev)-1):
+    for j in range(2, len(u_prev)-3):
         r_j1[j] = L(3, j, u_prev, xs, h)
     u_j1 = u_prev + dt*r_j1
+    u_j1 = PBC(u_j1, n_ghost)
 
-    for j in range(1, len(u_prev)-1):
+    for j in range(2, len(u_prev)-3):
         r_j2[j] = L(3, j, u_j1, xs, h)
     u_j2 = u_prev / 2 + u_j1 / 2 - dt*r_j1 / 4 + dt * r_j2 / 2
+    u_j2 = PBC(u_j2, n_ghost)
 
-    for j in range(1, len(u_prev)-1):
+    for j in range(2, len(u_prev)-3):
         r_j3[j] = L(3, j, u_j2, xs, h)
     u_j3 = u_prev/9 + 2*u_j1/9 + 2*u_j2/3 - dt*r_j1/9 - dt*r_j2/3 + dt*r_j3
+    u_j3 = PBC(u_j3, n_ghost)
     
     out = u_j1/3 + u_j2/3 + u_j3/3 + dt*r_j2/6 + dt*r_j3/6
-    return out
+    return PBC(out, n_ghost)
 
 def L(r, j, u, xs, h):
     """
@@ -145,7 +148,7 @@ def alpha(r, j, i, u):
     elif r == 3:
         return alpha_r3(j, i, u)
 
-@njit
+# @njit
 def alpha_r2(j, i, u, eps = 1e-5):
     """
     Equations 3.17a & 3.17b 
@@ -161,7 +164,7 @@ def alpha_r2(j, i, u, eps = 1e-5):
         elif i == 1:
             return 1 / 2 / (eps + SI(2, j+1, u))**2
 
-@njit
+# @njit
 def alpha_r3(j, i, u, eps = 1e-5):
     """
     Equations 3.17a & 3.17b 
@@ -187,11 +190,11 @@ def interpolants(r, j, x, u, xs, h):
     elif r == 3:
         return interp_r3(j, x, u, xs, h)
 
-@njit
+# @njit
 def interp_r2(j, x, u, xs, h):
     return u[j-1] + (u[j] - u[j-1]) * (x - xs[j-1]) / h
 
-@njit
+# @njit
 def interp_r3(j, x, u, xs, h):
     p1 = (u[j] - 2*u[j-1] + u[j-2]) * (x - xs[j-1])*(x - xs[j-1]) / 2 / h/h 
     p2 = (u[j] - u[j-2]) * (x - xs[j-1]) / 2 / h
@@ -200,18 +203,18 @@ def interp_r3(j, x, u, xs, h):
     return p1 + p2 + p3
 
 
-@njit
+# @njit
 def SI(r, j, u):
     if r == 2:
         return SI_r2(j, u)
     elif r == 3:
         return SI_r3(j, u)
 
-@njit
+# @njit
 def SI_r2(j, u):
     return (u[j] - u[j-1])**2
 
-@njit
+# @njit
 def SI_r3(j, u):
     p1 = (u[j-1] - u[j-2])**2
     p2 = (u[j] - u[j-1])**2
@@ -230,25 +233,34 @@ def flux(a, b, u):
     elif a > b:
         return max(f(u_dec))
 
-@njit
-def PBC(arr):
+# @njit
+def PBC(arr, n_ghost):
+    """
     # Left ghost equals last valid point
     arr[0] = arr[-2]
     # Right ghost equals first valid point
     arr[-1] = arr[1]
+    """
+    arr[:n_ghost] = arr[-2*n_ghost:-n_ghost]
+    arr[-n_ghost:]= arr[n_ghost:2*n_ghost] 
     return arr
 
 
-from tqdm.notebook import tqdm
 
-n_ghost = 1
+
+r = 3
+
+if r == 2:
+    n_ghost = 1
+elif r == 3:
+    n_ghost = 2
+else:
+    raise Exception("Order not implemented! r = 2 or 3")
 
 h = 1e-2
 nx = int(2 / h + 1 + 2*n_ghost)
 # xs = np.linspace(-5, 5, nx)
-xs = np.array([(i-1)*h - 1 for i in range(nx)])
-
-print(xs)
+xs = np.array([(i-n_ghost)*h - 1 for i in range(nx)])
 
 u_prev = np.ones(len(xs)) # 1 + phys + 1
 # Phys
@@ -256,7 +268,7 @@ u_prev = np.ones(len(xs)) # 1 + phys + 1
 # u_prev[(xs>-0.1) & (xs < 0.1)] = 1
 # u_prev[n_ghost:-n_ghost] = np.exp(-200*xs[n_ghost:-n_ghost]**2)
 u_prev[n_ghost:-n_ghost] = np.sin(4 * np.pi * xs[n_ghost:-n_ghost])
-u_prev = PBC(u_prev)
+u_prev = PBC(u_prev, n_ghost)
 
 # Ghosts
 # u_prev = BC(u_prev)
@@ -264,20 +276,16 @@ u_prev = PBC(u_prev)
 
 N_it = 500
 
-r = 2
-
-sol = np.zeros((len(u_prev[n_ghost:-n_ghost]), 3))
+sol = np.zeros((len(u_prev[n_ghost:-n_ghost]), 2))
 sol[:, 0] = u_prev[n_ghost:-n_ghost].copy()
 
 t = 0
 dt = 1e-3
 for i in tqdm(range(N_it)):
     
-    u_next = TDV_RK(r, u_prev, xs, h, dt)
-    t = t + dt
-
-
+    u_next = TDV_RK(r, u_prev, xs, h, dt, n_ghost)
     u_prev = u_next.copy()
+    t = t + dt
         
 sol[:, 1] = u_next[n_ghost:-n_ghost].copy()
 
@@ -286,7 +294,7 @@ sol[:, 1] = u_next[n_ghost:-n_ghost].copy()
 fig = plt.figure()
 
 plt.plot(xs[n_ghost:-n_ghost], sol[:, 0],       alpha = 0.5, label = 'ID')
-plt.plot(xs[n_ghost:-n_ghost], sol[:, 2], '-',              label = f'{t  = }')
+plt.plot(xs[n_ghost:-n_ghost], sol[:, 1], '-',              label = f't  = {np.round(t,2)}')
 
 plt.legend()
 
