@@ -420,6 +420,14 @@ while t < T_final:
     print(f"Time {np.round(t, 4): <6} at iteration {it_counter: <3}...\r", end=' ')
 print('Done!')
 
+########
+## TO DO
+########
+# 1) check for existance of frame folder and change name
+# 2) check for existance of out_video and change name
+# 3) input name of out_video
+# 4) option to keep frames
+
 print('Creating out_video.mp4')
 os.system("ffmpeg -framerate 30 -loglevel quiet -pattern_type glob -i 'frames/*.png' -c:v libx264 -pix_fmt yuv420p out_video.mp4")
 print('Removing folder ./frames')
