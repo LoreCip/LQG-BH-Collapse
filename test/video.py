@@ -346,9 +346,9 @@ def der(f, h):
 
 from pathlib import Path
 import os
-Path("./frames").mkdir(parents=True, exist_ok=True)
+Path("./.frames").mkdir(parents=True, exist_ok=True)
 
-T_final = 30 #8.5*mass**2 + 40*mass
+T_final = 15 #8.5*mass**2 + 40*mass
 
 r0 = 15
 
@@ -378,7 +378,9 @@ fup = fp(u_p[nghost:-nghost], x_phys)
 t = 0
 counter = 0
 it_counter = 0
+y_max = -1
 
+print('Starting simulation...')
 while t < T_final:
     # Compute dt
     dt = CLF(u_p[nghost:-nghost], x_phys, h)
@@ -406,7 +408,11 @@ while t < T_final:
         fig = plt.figure()
         plt.plot(x_phys[5:], rho[5:])
         plt.title(f"Time = {np.round(t, 4)}")
-        plt.ylim((1.1*np.min(rho[5:]), 1.1*np.max(rho[5:])))
+
+        if y_max < 1.1*np.max(rho[5:]):
+            y_max = 1.1*np.max(rho[5:])
+
+        plt.ylim((0, y_max))
         plt.xlim(-0.1, r0*1.5)
         plt.savefig(f'frames/frame{counter:04d}.png')
         plt.close()
@@ -417,7 +423,7 @@ while t < T_final:
     if t < T_final:
         u_p = u.copy()
 
-    print(f"Time {np.round(t, 4): <6} at iteration {it_counter: <3}...\r", end=' ')
+    print(f"Time {np.round(t, 4): <7} at iteration {it_counter: <3}...\r", end = '')
 print('Done!')
 
 ########
@@ -429,6 +435,5 @@ print('Done!')
 # 4) option to keep frames
 
 print('Creating out_video.mp4')
-os.system("ffmpeg -framerate 30 -loglevel quiet -pattern_type glob -i 'frames/*.png' -c:v libx264 -pix_fmt yuv420p out_video.mp4")
-print('Removing folder ./frames')
-os.system("rm -rf ./frames")
+os.system("ffmpeg -framerate 30 -loglevel quiet -pattern_type glob -i '.frames/*.png' -c:v libx264 -pix_fmt yuv420p out_video.mp4")
+os.system("rm -rf ./.frames")
