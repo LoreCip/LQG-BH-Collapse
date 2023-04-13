@@ -405,17 +405,7 @@ while t < T_final:
         else:
             rho = (u_p[nghost:-nghost] - u[nghost:-nghost]) / x_phys**2 / (4*np.pi*dt)
         
-        fig = plt.figure()
-        plt.plot(x_phys[5:], rho[5:])
-        plt.title(f"Time = {np.round(t, 4)}")
-
-        if y_max < 1.1*np.max(rho[5:]):
-            y_max = 1.1*np.max(rho[5:])
-
-        plt.ylim((0, y_max))
-        plt.xlim(-0.1, r0*1.5)
-        plt.savefig(f'frames/frame{counter:04d}.png')
-        plt.close()
+        plotting()
 
         counter += 1
     it_counter += 1
