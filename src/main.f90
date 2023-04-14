@@ -82,5 +82,5 @@ program LQGeq
     call cpu_time(T2)
     print*, "Total time:", T2 - T1, "seconds."
     print*, u
-
+    
 end program LQGeq

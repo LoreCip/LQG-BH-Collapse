@@ -4,7 +4,10 @@ This code implements the original formulation of the Weighted Essentially Non-Os
 
 ## How to install
 
-W.i.P.
+To install the Fortran code run the bash script \textit{make.sh} using the following command
+```bash
+./make.sh
+```
 
 ## How to run the code
 
