@@ -89,7 +89,7 @@ for  kk = 1:1
   ym = 2.0;
 
   % set mass run time t_final 
-  T_final = 8.5*mass^2 + 40*mass;
+  T_final = 2 % 8.5*mass^2 + 40*mass;
 
   % initial data vectors
   

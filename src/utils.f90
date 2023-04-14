@@ -1,66 +1,102 @@
 ! FILE: utils.f90
 
-subroutine interp(n, x, xi, ui, out)
-    ! Linear 1D interpolator
-    ! ui and xi are 1D arrays with n entries corresponding to the points needed to compute the n-th order interpolating polynomial.
-    use, intrinsic :: iso_fortran_env, dp=>real64
+subroutine func(NX, u, x, fun)
 
-    real(dp), parameter :: EPS = 1E-16
+    use iso_fortran_env, only: RK => real64
+    implicit none
 
-    integer               , intent(in) :: n
-    real(dp), dimension(n), intent(in) :: ui, xi
-    real(dp)              , intent(in) :: x
-    real(dp)              , intent(out):: out 
+    integer,                 intent(in)  :: NX
+    real(RK), dimension(NX), intent(in)  :: u, x
+    real(RK), dimension(NX), intent(out) :: fun
 
-    integer  :: j
-    real(dp) :: Lnj, ssum, xx
+    integer :: i
 
-    xx = x
-    do j = 1, n
-        if (x == xi(j)) then
-            xx = x + EPS
-            exit
+    do i = 1, NX
+        fun(i) = 0.5_RK * x(i)**3 * sin(u(i) / x(i)**2)**2
+    end do
+
+return
+end subroutine func
+
+subroutine fprime(NX, u, x, f_prime)
+
+    use iso_fortran_env, only: RK => real64
+    implicit none
+
+    integer,                 intent(in)  :: NX
+    real(RK), dimension(NX), intent(in)  :: u, x
+    real(RK), dimension(NX), intent(out) :: f_prime
+
+    integer :: i
+
+    do i = 1, NX
+        f_prime(i) = 0.5_RK * x(i) * sin(2_RK * u(i) / x(i)**2)
+    end do
+
+return
+end subroutine fprime
+
+
+function heaviside(x)
+
+    use iso_fortran_env, only: RK => real64
+    implicit none
+
+    real(RK), intent(in) :: x
+    real(RK)             :: heaviside
+
+    if ( x.gt.0 ) then
+        heaviside = 1_RK
+    else if (x.lt.0) then
+        heaviside = 0_RK
+    else
+        heaviside = 0.5_RK
+    end if
+
+    return
+end function heaviside
+
+subroutine flux(a, b, x_surf, out)
+
+    use iso_fortran_env, only: RK => real64
+    implicit none
+
+    real(RK), intent(in) :: a, b, x_surf
+    real(RK), intent(out):: out
+
+    real(RK) :: ul, ur, FL, FR
+    real(RK), parameter :: PI=4._RK*DATAN(1._RK)
+
+    ul = a / x_surf**2_RK
+    ur = b / x_surf**2_RK
+    FL = 0.5_RK * x_surf**3 * sin(ul)**2 
+    FR = 0.5_RK * x_surf**3 * sin(ur)**2
+
+    if (ul.lt.ur) then
+        out = min(FL, FR)
+    else if( ul.gt.ur) then
+        if ((ur.gt.-PI/2_RK).or.(ul.lt.-PI/2_RK)) then
+            out = max(FL, FR)
+        else
+            out = 0.5_RK * x_surf**3
         end if
-    end do
+    end if
+return
+end subroutine flux
 
-    ssum = 0
-    do j = 0, n
-        call prod(n, j, xi, xx, Lnj)
-        ssum = ssum + ui(j) * Lnj
-    end do
 
-    out = ssum
-    return
-end subroutine
+subroutine BC(NX, arr, nghost)
+    use iso_fortran_env, only: RK => real64
+    implicit none
 
-subroutine prod(n, j, xi, x, out)
-
-    use, intrinsic :: iso_fortran_env, dp=>real64
-
-    integer               , intent(in)  :: n, j
-    real(dp)              , intent(in)  :: x
-    real(dp), dimension(n), intent(in)  :: xi
-    real(dp)              , intent(out) :: out
-
-    integer :: k
-    real(dp):: p
+    integer,                 intent(in)    :: NX, nghost
+    real(RK), dimension(NX), intent(inout) :: arr
     
-    p = 1
-    do k = 0, n
-        if (k == j) then; cycle; end if
-        p = p * (x - xi(k)) / (xi(j) - xi(k))
+    integer :: i
+    
+    do i = 1, nghost
+        arr(i) = arr(nghost + 1 - i)
     end do
 
-    out = p
-    return
-end subroutine
-
-
-subroutine minimizer()
-
-    use, intrinsic :: iso_fortran_env, dp=>real64
-
-    
-
-    return
-end subroutine
+return
+end subroutine BC
