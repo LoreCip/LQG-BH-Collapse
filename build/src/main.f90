@@ -28,12 +28,10 @@ program LQGeq
                 h            ! Grid spacing
     integer  :: r,       &   ! Order of the WENO method
                 nghost,  &   ! Number of ghost cells
-                NX,      &   ! Number of points in xs
-                ufile        ! Output file for rho
-    real(RK), dimension(6) :: inputs  ! Input values from configuration file
+                NX           ! Number of points in xs
     
     integer :: i, num_args
-    character(len=100) :: arg
+    character(len=100), dimension(2) :: args
 
     CALL system_clock(count_rate=rate)
     call cpu_time(T1)
@@ -41,10 +39,18 @@ program LQGeq
 
     ! Read configuration parameters
     num_args = command_argument_count()
-    if (num_args .gt. 1) STOP "Only one args is contemplated, the path of the configuration file!"
-    call get_command_argument(1,arg)
-
-    call inputParser(arg, T_final, r0, m, r, xM, h)
+    if (num_args .gt. 2) STOP "Only two args are contemplated, the path of the configuration file and the path for the output!"
+    do i = 1, 2
+        call get_command_argument(i,args(i))
+        if (args(i) .eq. '') then
+            if (i.eq.1) then
+                args(i) = 'build/ParameterFile.dat'
+            else if (i .eq. 2) then
+                args(i) = 'build/outputs'
+            end if
+        end if
+    end do
+    call inputParser(args(1), T_final, r0, m, r, xM, h)
 
     ! Perform consistency checks
     if (r .eq. 2) then
@@ -102,16 +108,7 @@ program LQGeq
     print*, "Total CPU time:", T2 - T1, "seconds."
     print*, "Total system time", real(iTimes2-iTimes1)/real(rate)
 
-
-    open(newunit=ufile, file='rho.dat', form='unformatted')
-    write(ufile) rho
-    close(ufile)
-    open(newunit=ufile, file='B.dat', form='unformatted')
-    write(ufile) u
-    close(ufile)
-    open(newunit=ufile, file='x.dat', form='unformatted')
-    write(ufile) xs
-    close(ufile)
+    call saveOutput(args(2), NX, xs, u, rho, nghost)
 
     deallocate(xs, u, u_p, rho)
 

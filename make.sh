@@ -23,6 +23,7 @@ else
     fi
 
     mkdir $NAME
+    mkdir $NAME/outputs
 
     cp ParameterFile.dat $NAME
     cp Makefile $NAME

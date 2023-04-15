@@ -42,3 +42,43 @@
     end subroutine inputParser
 
     
+    subroutine saveOutput(path, NX, xs, u, rho, nghost)
+        
+        use iso_fortran_env, only: RK => real64
+        use OMP_LIB
+        implicit none
+
+        character(len=100)     , intent(in) :: path
+        integer                , intent(in) :: NX, nghost
+        real(RK), dimension(NX), intent(in) :: u, xs, rho
+
+        character(len=100) :: fpath
+        
+        fpath = trim(path) // '/xs.dat'
+        call save(fpath, xs, NX)
+        fpath = trim(path) // '/B.dat'
+        call save(fpath, u, NX)
+        fpath = trim(path) // '/rho.dat'
+        call save(fpath, rho, NX)    
+
+        return
+    end subroutine saveOutput
+
+    subroutine save(path, var, NX)
+
+        use iso_fortran_env, only: RK => real64
+        use OMP_LIB
+        implicit none
+
+        character(len=100)     , intent(in) :: path
+        integer                , intent(in) :: NX
+        real(RK), dimension(NX), intent(in) :: var
+
+        integer :: ufile        ! Output file
+        
+        open(newunit=ufile, file=path, status='new', form='unformatted')
+        write(ufile) var
+        close(ufile)
+
+    return
+    end subroutine save

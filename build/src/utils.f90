@@ -37,67 +37,48 @@
         r       = int(inputs(4))  
         xM      = inputs(5)   
         h       = inputs(6)
-
-        print*, T_final,r0     ,m      ,r      ,xM     ,h      
     
         return
     end subroutine inputParser
 
-    subroutine func(NX, u, x, fun)
+    
+    subroutine saveOutput(path, NX, xs, u, rho, nghost)
+        
+        use iso_fortran_env, only: RK => real64
+        use OMP_LIB
+        implicit none
+
+        character(len=100)     , intent(in) :: path
+        integer                , intent(in) :: NX, nghost
+        real(RK), dimension(NX), intent(in) :: u, xs, rho
+
+        character(len=100) :: fpath
+        
+        fpath = trim(path) // '/xs.dat'
+        call save(fpath, xs, NX)
+        fpath = trim(path) // '/B.dat'
+        call save(fpath, u, NX)
+        fpath = trim(path) // '/rho.dat'
+        call save(fpath, rho, NX)    
+
+        return
+    end subroutine saveOutput
+
+    subroutine save(path, var, NX)
 
         use iso_fortran_env, only: RK => real64
         use OMP_LIB
         implicit none
 
-        integer,                 intent(in)  :: NX
-        real(RK), dimension(NX), intent(in)  :: u, x
-        real(RK), dimension(NX), intent(out) :: fun
+        character(len=100)     , intent(in) :: path
+        integer                , intent(in) :: NX
+        real(RK), dimension(NX), intent(in) :: var
 
-        integer :: i
+        integer :: ufile        ! Output file
+        
+        open(newunit=ufile, file=path, status='new', form='unformatted')
+        write(ufile) var
+        close(ufile)
 
-        do i = 1, NX
-            fun(i) = 0.5_RK * x(i)**3 * sin(u(i) / x(i)**2)**2
-        end do
-
-        return
-    end subroutine func
-
-    subroutine fprime(NX, u, x, f_prime)
-
-        use iso_fortran_env, only: RK => real64
-        use OMP_LIB
-        implicit none
-
-        integer,                 intent(in)  :: NX
-        real(RK), dimension(NX), intent(in)  :: u, x
-        real(RK), dimension(NX), intent(out) :: f_prime
-
-        integer :: i
-
-        do i = 1, NX
-            f_prime(i) = 0.5_RK * x(i) * sin(2_RK * u(i) / x(i)**2)
-        end do
-
-        return
-    end subroutine fprime
-
-
-    function heaviside(x) result(out)
-
-        use iso_fortran_env, only: RK => real64
-        use OMP_LIB
-        implicit none
-
-        real(RK), intent(in) :: x
-        real(RK)             :: out
-
-        if ( x.gt.0 ) then
-            out = 1_RK
-        else if (x.lt.0) then
-            out = 0_RK
-        else
-            out = 0.5_RK
-        end if
-
-        return
-    end function heaviside
+    return
+    end subroutine save
