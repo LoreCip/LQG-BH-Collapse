@@ -31,14 +31,21 @@ To install the Fortran code run the bash script **make.sh** using the following 
 ```bash
 ./make.sh
 ```
-It creates a folder named _build_ that contains a copy of the source code as present at the moment of compilation, the Makefile and the executable named **run**. The name and location of the _build_ folder can be customized providing the **make.sh** script a path as an argument
+It creates a folder named _build_ that contains a copy of the source code as present at the moment of compilation, the Makefile and the executable named **run**. It will also create a subfolder named _output_ that will be the default target for the output routines and copy the standard parameter file that can be customized.
+
+The name and location of the _build_ folder can be customized providing the **make.sh** script a path as an argument
 ```bash
 ./make.sh path/to/custom/build/folder
 ```
-
-## Description of the physical problem
-
-W.i.P.
+To remove an existing build folder and all its content the dedicated command is
+```bash
+./make.sh remove path/to/build/folder
+```
+To run the code there are two optional arguments to be given:
+```bash
+./run [path/to/parameter/file.dat] [path/to/output/folder]
+```
+If they are not given the standard paths will be used. Please note the code assumes the executable is run from inside the build folder; if executing it from elsewhere these two arguments become mandatory.
 
 ## Description of the algorithm
 
