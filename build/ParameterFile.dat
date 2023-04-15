@@ -1,6 +1,0 @@
-2.0           # Total simulation time
-15.0          # r0
-5.0           # Mass
-2.0           # Order of WENO. Do not change this value
-50.0          # Furthest grid point
-0.01          # Grid spacing
