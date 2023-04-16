@@ -45,14 +45,14 @@ subroutine inputParser(path, T_final, r0, m, r, xM, h, N_output)
     return
 end subroutine inputParser
 
-subroutine saveOutput(path, NX, xs, u, rho, nghost)
+subroutine saveOutput(path, NX, xs, u, rho)
     
     use iso_fortran_env, only: RK => real64
     use OMP_LIB
     implicit none
 
     character(len=100)     , intent(in) :: path
-    integer                , intent(in) :: NX, nghost
+    integer                , intent(in) :: NX
     real(RK), dimension(NX), intent(in) :: u, xs, rho
 
     character(len=100) :: fpath

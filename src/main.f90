@@ -129,6 +129,10 @@ program LQGeq
 
     end do
 
+    write(*, "(A36)") "------------------------------------"
+    write(*, "(A36)") "            All done!               "
+    write(*, "(A36)") "------------------------------------"
+
     do i = 1, NX
         rho(i) = (u_p(i) - u(i)) / (4*PI * xs(i)**2 * dt)
     end do
@@ -138,7 +142,7 @@ program LQGeq
     print*, "Total CPU time:", T2 - T1, "seconds."
     print*, "Total system time", real(iTimes2-iTimes1)/real(rate)
 
-    call saveOutput(args(2), NX, xs, u, rho, nghost)
+    call saveOutput(args(2), NX, xs, u, rho)
 
     deallocate(xs, u, u_p, rho)
 
