@@ -4,3 +4,4 @@
 2.0           # Order of WENO. Do not change this value
 50.0          # Furthest grid point
 0.01          # Grid spacing
+5000          # Print output every N iterations
