@@ -26,10 +26,8 @@ else
     mkdir $NAME/outputs
 
     cp ParameterFile.dat $NAME
-    cp Makefile $NAME
     cp -r src/ $NAME/
-    cp visual.ipynb $NAME
-
+    
     cd $NAME
 
     make

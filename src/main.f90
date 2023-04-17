@@ -30,10 +30,18 @@ program LQGeq
     integer  :: r,       &   ! Order of the WENO method
                 nghost,  &   ! Number of ghost cells
                 NX,      &   ! Number of points in xs
-                N_output     ! Print output every
-    
-    integer :: i, num_args, counter, nthreads
+                N_output,&   ! Print output every
+                N_save,  &   ! Save every
+                nthreads     ! Number of threads for OpenMP
+                
+    ! Iterators           
+    integer :: i, counter
+
+    ! Input arguments
+    integer :: num_args
     character(len=100), dimension(2) :: args
+    ! Save
+    character(len=100) :: fpath
 
     CALL system_clock(count_rate=rate)
     call cpu_time(T1)
@@ -53,7 +61,8 @@ program LQGeq
             end if
         end if
     end do
-    call inputParser(args(1), T_final, r0, m, r, xM, h, N_output, nthreads)
+    
+    call inputParser(args(1), T_final, r0, m, r, xM, h, N_save, N_output, nthreads)
 
     CALL OMP_SET_NUM_THREADS(nthreads)
 
@@ -65,19 +74,19 @@ program LQGeq
     end if
 
     ! PRINT SUMMARY AND NICE OUTPUT
-    write(*, "(A36)") "------------------------------------"
+    write(*, "(A42)") "------------------------------------------"
     write(*, "(A12)") "WENO3 SOLVER"
-    write(*, "(A36)") "------------------------------------"
+    write(*, "(A42)") "------------------------------------------"
     write(*, "(A7)") "SUMMARY"
     write(*, "(A27, F9.2)") "   - Simulation time      :    ", T_final
     write(*, "(A27, F9.3)") "   - Grid spacing         :    ", h
     write(*, "(A27, F9.2)") "   - Total mass           :    ", m
     write(*, "(A27, F9.2)") "   - Characteristic radius:    ", r0
     write(*, "(A27, I9)") "   - Number of threads    :    ", nthreads
-    write(*, "(A36)") "------------------------------------"
+    write(*, "(A42)") "------------------------------------------"
     write(*, "(A36)") "        Starting simulation...      "
-    write(*, "(A36)") "------------------------------------"
-    write(*, "(A36)") "    Time   ||  Iteration  ||   M    "
+    write(*, "(A42)") "------------------------------------------"
+    write(*, "(A42)") "    Time   ||    Iteration   ||      M    "
 
     ! Define numerical grid
     NX = int(xM / h + 1 + 2*nghost)
@@ -87,6 +96,8 @@ program LQGeq
     do i = 1, NX
         xs(i) = (eps + i - 1 - nghost) * h
     end do
+    fpath = trim(args(2)) // '/xs.dat'
+    call save(fpath, xs(nghost+1:NX-nghost-1), NX-2*nghost)
 
     ! Produce initial data
     call initial_data(NX, xs, m, r0, u_p)
@@ -110,7 +121,7 @@ program LQGeq
         call TVD_RK(NX, u_p, xs, h, dt, nghost, u)
 
         ! TERMINAL OUTPUT
-        if (mod(real(counter), real(N_output)).eq.0) then
+        if (mod(counter, N_output).eq.0) then
             ! call SYSTEM_CLOCK(iTimesB)
             ! xxx = real(iTimesB-iTimesA)/real(rate)
             ! call SYSTEM_CLOCK(iTimesA)
@@ -121,8 +132,15 @@ program LQGeq
                 ssum = ssum + (u_p(i-1) - u(i-1) + u_p(i) - u(i)) / (2._RK * dt)
             end do
 
-            write(*, "(2x, F6.2, 3x, A2, 3x, I9, 4x, A2, 3x, F10.4)") t, "||",  counter,  "||",  ssum*h
-            write(*,*) "Computed in", xxx, "seconds."
+            write(*, "(2x, F6.2, 3x, A2, 3x, I9, 4x, A2, 3x, F7.4)") t, "||",  counter,  "||",  ssum*h
+            ! write(*,*) "Computed in", xxx, "seconds."
+        end if
+
+        if ( (mod(counter, N_save).eq.0).or.(t.eq.T_final) ) then
+            do i = 1, NX
+                rho(i) = (u_p(i) - u(i)) / (4*PI * xs(i)**2 * dt)
+            end do
+            call saveOutput(args(2), NX, u, rho, nghost)
         end if
         counter = counter + 1
 
@@ -139,19 +157,12 @@ program LQGeq
     write(*, "(A36)") "            All done!               "
     write(*, "(A36)") "------------------------------------"
 
-    do i = 1, NX
-        rho(i) = (u_p(i) - u(i)) / (4*PI * xs(i)**2 * dt)
-    end do
-    
     call cpu_time(T2)
     call SYSTEM_CLOCK(iTimes2)
     write(*, "(A18,1x, F7.2, A8)") "Total CPU time   :", T2 - T1, " seconds."
     xxx = real(iTimes2-iTimes1)/real(rate)
     write(*, "(A18,1x, F7.2, A8)") "Total system time:", xxx, " seconds."
 
-    call saveOutput(args(2), NX, xs, u, rho, nghost)
-
     deallocate(xs, u, u_p, rho)
-
 
 end program LQGeq
