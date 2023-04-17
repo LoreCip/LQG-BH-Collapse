@@ -12,6 +12,7 @@ subroutine TVD_RK(NX, u_p, x, dx, dt, nghost, uf)
     real(RK), dimension(NX) :: u1, u2, u12, u32
     integer :: i
 
+!$OMP PARALLEL
     ! 1**) t      --> t +   dt
     call RK_STEP(NX, u_p, x, dx, dt, nghost, u1)
 
@@ -19,18 +20,27 @@ subroutine TVD_RK(NX, u_p, x, dx, dt, nghost, uf)
     call RK_STEP(NX, u1, x, dx, dt, nghost, u2)
 
     ! 3**) t + dt/2
+!$OMP DO SCHEDULE(STATIC) private(i)
     do i = 1, NX
         u12(i) = 3_RK*u_p(i)/4_RK + u2(i)/4_RK
     end do
+!$OMP END DO
+
+!$OMP SINGLE
     call BC(NX, u12, nghost)
+!$OMP END SINGLE
 
     ! 4**) t + dt/2 -- > t + 3*dt/2
     call RK_STEP(NX, u12, x, dx, dt, nghost, u32)
 
     ! 5**) t + dt
+!$OMP DO SCHEDULE(STATIC) private(i)
     do i = 1, NX
         uf(i) = u_p(i)/3_RK + 2_RK*u32(i)/3_RK
     end do
+!$OMP END DO
+!$OMP END PARALLEL 
+
     call BC(NX, uf, nghost)
 
     return
@@ -51,31 +61,25 @@ subroutine RK_STEP(NX, u, x, dx, dt, nghost, u_step)
     real(RK) :: L
     real(RK), dimension(NX) :: f_prime
 
-    integer, parameter :: nthreads = 4
-    ! CALL OMP_SET_NUM_THREADS(nthreads)
-
     call fprime(NX, u, x, f_prime)
 
-!$OMP PARALLEL DO
-    do i = 1, NX
-        ! Skip ghost cells
-        if ((i.le.nghost).or.(i.gt.NX-nghost)) cycle
-        ! If it is the first physical, set it to zero
-        if (i.eq.(1 + nghost)) then
-            u_step(i) = 0
-        ! If it is the last physical, set it to the previous values
-        else if (i.eq.(NX - nghost - 2)) then
-            u_step(i) = u(i)
-            u_step(i+1) = u(i+1)
-        else
-            call WENO_RHS(NX, i, u, f_prime, x, dx, nghost, L)
-            u_step(i) = u(i) + dt * L
-        end if
+!$OMP SINGLE
+    u_step(2) = u(2)           ! First phys not evolve
+    u_step(1) = u_step(2)      ! Ghost
+    u_step(NX-1) = u(NX-1)     ! Last phys not evolve
+    u_step(NX) = u_step(NX-1)  ! Ghost
+!$OMP END SINGLE
+
+!$OMP DO SCHEDULE(STATIC) 
+    do i = 3, NX-2
+        call WENO_RHS(NX, i, u, f_prime, x, dx, nghost, L)
+        u_step(i) = u(i) + dt * L
     end do
-!$OMP END PARALLEL DO
+!$OMP END DO
+!$OMP BARRIER
 
     ! Take care of the boundary conditions on the ghosts
-    call BC(NX, u_step, nghost)
+    ! call BC(NX, u_step, nghost)
 
     return
 end subroutine RK_STEP
@@ -83,7 +87,6 @@ end subroutine RK_STEP
 subroutine CLF(NX, u, x, dx, dt)
 
     use iso_fortran_env, only: RK => real64
-    use OMP_LIB
     implicit none
 
     integer                , intent(in) :: NX
@@ -96,14 +99,9 @@ subroutine CLF(NX, u, x, dx, dt)
     real(RK), dimension(NX) :: vel
     real(RK), parameter :: fact = 0.25_RK
 
-    integer, parameter :: nthreads = 4
-    ! CALL OMP_SET_NUM_THREADS(nthreads)
-
-!$OMP PARALLEL DO
     do i = 1, NX
         vel(i) = 0.5_RK * x(i) * sin(2_RK * u(i) / x(i)**2_RK)
     end do
-!$OMP END PARALLEL DO
 
     v_min = minval(vel)
     v_max = maxval(vel)
@@ -120,17 +118,18 @@ end subroutine CLF
 subroutine BC(NX, arr, nghost)
     
     use iso_fortran_env, only: RK => real64
-    use OMP_LIB
     implicit none
 
     integer,                 intent(in)    :: NX, nghost
     real(RK), dimension(NX), intent(inout) :: arr
-    integer :: i
+    ! integer :: i
 
-    do i = 1, nghost
-        arr(i) = arr(nghost + 1 - i)
-        arr(NX + 1 - i) = arr(NX - nghost)
-    end do
+    arr(1) = arr(2)
+    arr(NX) = arr(NX-1) 
+    ! do i = 1, nghost
+    !     arr(i) = arr(nghost + i)
+    !     arr(NX + 1 - i) = arr(NX - nghost)
+    ! end do
 
     return
 end subroutine BC

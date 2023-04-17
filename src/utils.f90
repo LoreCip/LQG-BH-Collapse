@@ -1,16 +1,15 @@
 ! FILE: utils.f90
 
-subroutine inputParser(path, T_final, r0, m, r, xM, h, N_output)
+subroutine inputParser(path, T_final, r0, m, r, xM, h, N_output, nthreads)
 
     use iso_fortran_env, only: RK => real64
-    use OMP_LIB
     implicit none
     
     character(len=100), intent(in) :: path
     real(RK)          , intent(out):: T_final, r0, m, xM, h
-    integer           , intent(out):: r, N_output
+    integer           , intent(out):: r, N_output, nthreads
 
-    real(RK), dimension(7) :: inputs
+    real(RK), dimension(8) :: inputs
     integer :: ios, n, nu
     character(100) :: blabla
 
@@ -24,11 +23,12 @@ subroutine inputParser(path, T_final, r0, m, r, xM, h, N_output)
     !!  5    |  xM
     !!  6    |  h
     !!  7    |  N_output
+    !!  8    |  nthreads
 
     open(newunit=nu, file = path, status='old', iostat=ios)
     if ( ios /= 0 ) stop "Error opening file ParameterFile.dat"
 
-    do n = 1, 7
+    do n = 1, 8
         read(nu, *, iostat=ios)  inputs(n), blabla
         if (ios /= 0) STOP "Error while reading paramters from ParameterFile.dat"
     end do
@@ -41,28 +41,39 @@ subroutine inputParser(path, T_final, r0, m, r, xM, h, N_output)
     xM      = inputs(5)   
     h       = inputs(6)
     N_output= int(inputs(7))
-
+    nthreads= int(inputs(8))
+    
     return
 end subroutine inputParser
 
-subroutine saveOutput(path, NX, xs, u, rho)
+subroutine saveOutput(path, NX, xs, u, rho, nghost)
     
     use iso_fortran_env, only: RK => real64
-    use OMP_LIB
     implicit none
 
     character(len=100)     , intent(in) :: path
-    integer                , intent(in) :: NX
+    integer                , intent(in) :: NX, nghost
     real(RK), dimension(NX), intent(in) :: u, xs, rho
 
+    real(RK), dimension(NX-2*nghost) :: ut, xst, rhot
+    integer :: i, j
     character(len=100) :: fpath
     
+    j = 1
+    do i = 1+nghost, Nx-nghost
+        ut(j) = u(i)
+        xst(j) = xs(i)
+        rhot(j) = rho(i)
+
+        j = j+1
+    end do
+
     fpath = trim(path) // '/xs.dat'
-    call save(fpath, xs, NX)
+    call save(fpath, xst, NX-2*nghost)
     fpath = trim(path) // '/B.dat'
-    call save(fpath, u, NX)
+    call save(fpath, ut, NX-2*nghost)
     fpath = trim(path) // '/rho.dat'
-    call save(fpath, rho, NX)
+    call save(fpath, rhot, NX-2*nghost)
 
     return
 end subroutine saveOutput
@@ -70,7 +81,6 @@ end subroutine saveOutput
 subroutine save(path, var, NX)
 
     use iso_fortran_env, only: RK => real64
-    use OMP_LIB
     implicit none
 
     character(len=100)     , intent(in) :: path

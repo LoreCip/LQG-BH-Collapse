@@ -3,7 +3,7 @@ FCOMP = gfortran
 FC = -c
 FFLAGS = -Wall -Wextra -Wconversion -pedantic
 FOPT = -O3
-FOMP = #-fopenmp
+FOMP = -fopenmp
 
 EXECUTABLE = run
 

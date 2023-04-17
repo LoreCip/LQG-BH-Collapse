@@ -1,7 +1,8 @@
-2.0           # Total simulation time
+20.0           # Total simulation time
 15.0          # r0
 5.0           # Mass
 2.0           # Order of WENO. Do not change this value
 50.0          # Furthest grid point
-0.01          # Grid spacing
-5000          # Print output every N iterations
+0.01         # Grid spacing
+10000         # Print output every N iterations
+8             # Number of threads
