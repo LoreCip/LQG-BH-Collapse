@@ -70,7 +70,7 @@ subroutine RK_STEP(NX, u, x, dx, dt, nghost, u_step)
     u_step(NX) = u_step(NX-1)  ! Ghost
 !$OMP END SINGLE
 
-!$OMP DO SCHEDULE(STATIC) 
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i, L)
     do i = 3, NX-2
         call WENO_RHS(NX, i, u, f_prime, x, dx, nghost, L)
         u_step(i) = u(i) + dt * L
