@@ -4,6 +4,6 @@
 2.0           /* Order of WENO. Do not change this value
 50.0          /* Furthest grid point
 0.01          /* Grid spacing
-1000          /* Save output every ## iterations
+10000          /* Save output every ## iterations
 10000         /* Print output every ## iterations
 4             /* Number of threads

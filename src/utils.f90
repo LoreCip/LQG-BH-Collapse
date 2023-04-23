@@ -48,19 +48,21 @@ subroutine inputParser(path, T_final, r0, m, r, xM, h, N_save, N_output, nthread
     return
 end subroutine inputParser
 
-subroutine saveOutput(path, NX, u, rho, nghost)
+subroutine saveOutput(path, NX, B, E, rho, nghost)
     
     use iso_fortran_env, only: RK => real64
     implicit none
 
     character(len=100)     , intent(in) :: path
     integer                , intent(in) :: NX, nghost
-    real(RK), dimension(NX), intent(in) :: u, rho
+    real(RK), dimension(NX), intent(in) :: B, E, rho
 
     character(len=100) :: fpath
 
     fpath = trim(path) // '/B.dat'
-    call save(fpath, u(nghost+1:NX-nghost-1), NX-2*nghost)
+    call save(fpath, B(nghost+1:NX-nghost-1), NX-2*nghost)
+    fpath = trim(path) // '/E.dat'
+    call save(fpath, E(nghost+1:NX-nghost-1), NX-2*nghost)
     fpath = trim(path) // '/rho.dat'
     call save(fpath, rho(nghost+1:NX-nghost-1), NX-2*nghost)
 

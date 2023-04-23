@@ -14,6 +14,7 @@ program LQGeq
 
     real(RK) :: T_final, &   ! Max integration time
                     r0,      &   ! Density cutoff
+                    a0,      &   ! FRW param
                     m,       &   ! Total mass
                     t,       &   ! Integrated time
                     dt           ! Time step
@@ -61,6 +62,9 @@ program LQGeq
             end if
         end if
     end do
+
+    !!! TEMP
+    a0 = 20_RK
     
     call inputParser(args(1), T_final, r0, m, r, xM, h, N_save, N_output, nthreads)
 
@@ -79,18 +83,18 @@ program LQGeq
     write(*, "(A42)") "------------------------------------------"
     write(*, "(A7)") "SUMMARY"
     write(*, "(A27, F9.2)") "   - Simulation time      :    ", T_final
-    write(*, "(A27, F9.3)") "   - Grid spacing         :    ", h
+    write(*, "(A27, E9.3)") "   - Grid spacing         :    ", h
     write(*, "(A27, F9.2)") "   - Total mass           :    ", m
     write(*, "(A27, F9.2)") "   - Characteristic radius:    ", r0
     write(*, "(A27, I9)") "   - Number of threads    :    ", nthreads
     write(*, "(A42)") "------------------------------------------"
     write(*, "(A36)") "        Starting simulation...      "
     write(*, "(A42)") "------------------------------------------"
-    write(*, "(A42)") "    Time   ||    Iteration   ||      M    "
+    write(*, "(A42)") "    Time   ||    Iteration   ||    M - M0 "
 
     ! Define numerical grid
     NX = int(xM / h + 1 + 2*nghost)
-    allocate(xs(NX), u(NX), u_p(NX), rho(NX), stat=error_code)
+    allocate(xs(NX), u(2*NX), u_p(2*NX), rho(NX), stat=error_code)
     if(error_code /= 0) STOP "Error during array allocations!"
 
     do i = 1, NX
@@ -100,7 +104,7 @@ program LQGeq
     call save(fpath, xs(nghost+1:NX-nghost-1), NX-2*nghost)
 
     ! Produce initial data
-    call initial_data(NX, xs, m, r0, u_p)
+    call initial_data(NX, xs, m, r0, a0, u_p)
     
     counter = 0
     ! Time evolution
@@ -126,27 +130,26 @@ program LQGeq
             ! xxx = real(iTimesB-iTimesA)/real(rate)
             ! call SYSTEM_CLOCK(iTimesA)
 
+            call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, rho)
             ! COMPUTE MASS
             ssum = 0_RK
             do i = 2, NX
-                ssum = ssum + (u_p(i-1) - u(i-1) + u_p(i) - u(i)) / (2._RK * dt)
+                ssum = ssum + (rho(i-1) + rho(i)) / (2._RK * dt)
             end do
 
-            write(*, "(2x, F6.2, 3x, A2, 3x, I9, 4x, A2, 3x, F7.4)") t, "||",  counter,  "||",  ssum*h
+            write(*, "(2x, F6.3, 3x, A2, 3x, I9, 4x, A2, 3x, E11.3)") t, "||",  counter,  "||",  ssum*h - m
             ! write(*,*) "Computed in", xxx, "seconds."
         end if
 
         if ( (mod(counter, N_save).eq.0).or.(t.eq.T_final) ) then
-            do i = 1, NX
-                rho(i) = (u_p(i) - u(i)) / (4*PI * xs(i)**2 * dt)
-            end do
-            call saveOutput(args(2), NX, u, rho, nghost)
+            call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, rho)
+            call saveOutput(args(2), NX, u(1:NX), u(NX+1:2*NX), rho, nghost)
         end if
         counter = counter + 1
 
         ! Update previous step
         if ( t.lt.T_final ) then
-            do i = 1, NX
+            do i = 1, 2*NX
                 u_p(i) = u(i)
             end do
         end if

@@ -1,12 +1,12 @@
-subroutine initial_data(NX, x, m, r0, u)
+subroutine initial_data(NX, x, m, r0, a0, u)
 
     use iso_fortran_env, only: RK => real64
     implicit none
 
     integer                , intent(in) :: NX
-    real(RK)               , intent(in) :: m, r0
+    real(RK)               , intent(in) :: m, r0, a0
     real(RK), dimension(NX), intent(in) :: x
-    real(RK), dimension(NX), intent(out):: u
+    real(RK), dimension(2*NX), intent(out):: u
 
     integer :: i
     real(RK) :: th, Mass, heaviside
@@ -15,8 +15,10 @@ subroutine initial_data(NX, x, m, r0, u)
         th = heaviside(r0 - x(i))
         Mass = m*x(i)**3_RK / r0**3_RK * th + m * (1_RK - th)
         u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK)
+        u(NX+i) = x(i)**2 / a0**2 * th + r0**2 / a0**2 * (1_RK - th)
     end do
     u(1) = 0_RK
-    
+    u(NX+1) = 0_RK
+
 return
 end subroutine initial_data

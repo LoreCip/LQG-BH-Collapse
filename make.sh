@@ -9,6 +9,8 @@ then
     DIRECTORY=$2
     if [ ! -d "$DIRECTORY" ]; then
         echo "$DIRECTORY does not exist. Cannot remove."
+    elif [ -z "" ]
+        echo "Folder must exist!"
     fi
 
     rm -rf $2
@@ -27,6 +29,7 @@ else
 
     cp ParameterFile.dat $NAME
     cp -r src/ $NAME/
+    cp Makefile $NAME
     
     cd $NAME
 
