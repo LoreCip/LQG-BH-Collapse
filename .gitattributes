@@ -1,2 +1,1 @@
-Notebooks/* linguist-vendored
-PostProcessing/* linguist-vendored
+*.ipynb -linguist-detectable
