@@ -80,7 +80,7 @@ program LQGeq
     write(*, "(A7)") "SUMMARY"
     write(*, "(A35, F9.2)") "   - Simulation time      :    ", T_final
     write(*, "(A35, E9.3)") "   - Grid spacing         :    ", h
-    write(*, "(A35, F9.2)") "   - Total mass           :    ", m
+    write(*, "(A35, F9.2)") "   - Total mass, M0       :    ", m
     write(*, "(A35, F9.2)") "   - Characteristic radius:    ", r0
     write(*, "(A35, F9.2)") "   - Initial scale factor :    ", a0
     write(*, "(A35, I9)")   "   - Number of threads    :    ", nthreads
@@ -104,11 +104,10 @@ program LQGeq
     ! Produce initial data
     call initial_data(NX, xs, h, m, r0, a0, 0, u_p)
     
-    counter = 0
+    counter = 1
     ! Time evolution
     t = 0_RK
     done = .false.
-
     do while (t.lt.T_final)
 
         ! Determine dt from Courant condition
