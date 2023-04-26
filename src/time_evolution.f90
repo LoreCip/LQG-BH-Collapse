@@ -6,16 +6,17 @@ subroutine TVD_RK(NX, u_p, x, dx, dt, nghost, uf)
 
     integer                , intent(in) :: NX, nghost
     real(RK)               , intent(in) :: dx, dt
-    real(RK), dimension(NX), intent(in) :: u_p, x
-    real(RK), dimension(NX), intent(out):: uf
+    real(RK), dimension(NX), intent(in) :: x
+    real(RK), dimension(2*NX), intent(in) :: u_p
+    real(RK), dimension(2*NX), intent(out):: uf
 
-    real(RK), dimension(NX) :: u1, u2, u12, u32
+    real(RK), dimension(2*NX) :: u1, u2, u12, u32
     integer :: i
 
 !$OMP PARALLEL
     ! 1**) t      --> t +   dt
     call RK_STEP(NX, u_p, x, dx, dt, nghost, u1)
-
+    
     ! 2**) t + dt --> t + 2*dt
     call RK_STEP(NX, u1, x, dx, dt, nghost, u2)
 
@@ -54,38 +55,38 @@ subroutine RK_STEP(NX, u, x, dx, dt, nghost, u_step)
 
     integer                , intent(in) :: NX, nghost
     real(RK)               , intent(in) :: dx, dt
-    real(RK), dimension(NX), intent(in) :: u, x
-    real(RK), dimension(NX), intent(out):: u_step
+    real(RK), dimension(NX), intent(in) :: x
+    real(RK), dimension(2*NX), intent(in) :: u
+    real(RK), dimension(2*NX), intent(out):: u_step
 
     integer :: i
     real(RK) :: L, Bp, Bm, e_k, e_l, vb
     real(RK), dimension(NX) :: f_prime
 
-    call fprime(NX, u, x, f_prime)
+!$OMP DO SCHEDULE(STATIC) 
+    do i = 1, NX
+        f_prime(i) = vb(u(i), x(i))
+    end do
+!$OMP END DO
 
 !$OMP SINGLE
     u_step(2) = u(2)           ! First phys not evolve
-    u_step(1) = u_step(2)      ! Ghost
     u_step(NX-1) = u(NX-1)     ! Last phys not evolve
-    u_step(NX) = u_step(NX-1)  ! Ghost
 
-    u_step(NX+2) = u(NX+2)           ! First phys not evolve
-    u_step(NX+1) = u_step(NX+2)      ! Ghost
+    u_step(NX+2) = u(NX+2)         ! First phys not evolve
     u_step(2*NX-1) = u(2*NX-1)     ! Last phys not evolve
-    u_step(2*NX) = u_step(2*NX-1)  ! Ghost
-!$OMP END SINGLE
+
+    ! Ghosts
+    call BC(NX, u_step)
+!$OMP END SINGLE NOWAIT
 
 !$OMP DO SCHEDULE(STATIC) PRIVATE(i, L, Bp, Bm, e_k, e_l)
     do i = 3, NX-2
         call WENO_RHS(NX, i, u, f_prime, x, dx, nghost, L, Bp, Bm, e_k, e_l)
-        u_step(i)    = u(i) + dt * (L + u(NX + i))
-        u_step(NX+i) = u(NX+i) + dt * ( vb(Bp, x(i)+0.5_RK*dx) * (u(NX+i) - e_k) + vb(Bm, x(i)-0.5_RK*dx) * (e_l - u(NX+i)))
+        u_step(i)    = u(i) + dt * (L + 0.5_RK * u(NX + i))
+        u_step(NX+i) = u(NX+i) + dt * ( vb(Bp, x(i)+0.5_RK*dx) * (u(NX+i) - e_k) + vb(Bm, x(i)-0.5_RK*dx) * (e_l - u(NX+i)) ) / dx
     end do
 !$OMP END DO
-!$OMP BARRIER
-
-    ! Take care of the boundary conditions on the ghosts
-    ! call BC(NX, u_step, nghost)
 
     return
 end subroutine RK_STEP
@@ -127,7 +128,7 @@ subroutine BC(NX, arr)
     implicit none
 
     integer,                 intent(in)    :: NX
-    real(RK), dimension(NX), intent(inout) :: arr
+    real(RK), dimension(2*NX), intent(inout) :: arr
 
     arr(1) = arr(2)
     arr(NX) = arr(NX-1)

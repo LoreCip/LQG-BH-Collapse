@@ -12,15 +12,17 @@ import matplotlib.pyplot as plt
 # 3) input name of out_video
 # 4) option to keep frames
 
-X = np.loadtxt('/home/lorenzo/phd/LQG/pbuild/outputs/xs.dat')
-B = np.loadtxt('/home/lorenzo/phd/LQG/pbuild/outputs/B.dat')
-rho = np.loadtxt('/home/lorenzo/phd/LQG/pbuild/outputs/rho.dat')
+X = np.loadtxt('/home/lorenzo/phd/LQG/negative_build/outputs/xs.dat')
+B = np.loadtxt('/home/lorenzo/phd/LQG/negative_build/outputs/B.dat')
+eps = np.loadtxt('/home/lorenzo/phd/LQG/negative_build/outputs/E.dat')
+rho = np.loadtxt('/home/lorenzo/phd/LQG/negative_build/outputs/rho.dat')
+
 
 Path("./.frames/").mkdir(parents=True, exist_ok=True)
 
-for i in range(len(rho)):
+for i in range(len(B)):
     fig = plt.figure()
-    plt.plot(X, rho[i, :])
+    plt.plot(X[0,:], B[i, :])
     plt.savefig(f"./.frames/frame{i:04d}.png")
     plt.close()
 

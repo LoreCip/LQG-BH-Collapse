@@ -1,21 +1,3 @@
-subroutine fprime(NX, u, x, f_prime)
-
-    use iso_fortran_env, only: RK => real64
-    implicit none
-
-    integer,                 intent(in)  :: NX
-    real(RK), dimension(NX), intent(in)  :: u, x
-    real(RK), dimension(NX), intent(out) :: f_prime
-
-    integer :: i
-!$OMP DO SCHEDULE(STATIC) 
-    do i = 1, NX
-        f_prime(i) = 0.5_RK * x(i) * sin(2_RK * u(i) / x(i)**2)
-    end do
-!$OMP END DO
-    return
-end subroutine fprime
-
 function vb(u, x) result(f_prime)
 
     use iso_fortran_env, only: RK => real64
@@ -72,16 +54,25 @@ subroutine compRho(NX, dx, dt, B, BP, E, x, out)
     integer,                 intent(in)  :: NX
     real(RK),                intent(in)  :: dx, dt
     real(RK), dimension(NX), intent(in)  :: B, BP, E, x
-    real(RK), dimension(NX-2), intent(out) :: out
+    real(RK), dimension(NX), intent(out) :: out
 
     integer :: i
     real(RK), parameter :: PI=4._RK*DATAN(1._RK)
+    real(RK), dimension(NX) :: e_der
 
-    out(1) = 1000
-    do i = 2, NX-1
-        out(i) = - ( (B(i) - BP(i))/dt + x(i) * (E(i+1) - E(i-1))/dx ) / (4_RK*PI*x(i)**2)
+    do i = 3, NX-2
+        e_der(i) = ( E(i-2) - 8*E(i-1) + 8*E(i+1) - E(i+2) ) / (12_RK * dx) 
     end do
-    out(NX) = 1000
+    e_der(2) = ( -25_RK*E(i) + 48_RK*E(i+1) - 36_RK*E(i+2) + 16_RK*E(i+3) - 3_RK*E(i+4) ) / (12_RK * dx) 
+    e_der(NX-1) = ( 25_RK*E(i) - 48_RK*E(i-1) + 36_RK*E(i-2) - 16_RK*E(i-3) + 3_RK*E(i-4) ) / (12_RK * dx)
+    e_der(1) = e_der(2)
+    e_der(NX) = e_der(NX-1)
+
+    do i = 2, NX-1
+        out(i) = - ( (B(i) - BP(i))/dt + x(i) * e_der(i) / 2_RK ) / (4_RK*PI*x(i)**2)
+    end do
+    out(1)  = out(2)
+    out(NX) = 0
 
     return
 end subroutine compRho

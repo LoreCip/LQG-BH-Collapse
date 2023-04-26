@@ -1,9 +1,10 @@
-20.0           /* Total simulation time
-15.0          /* r0
+0.000001           /* Total simulation time
+15.0          /* Characteristic radius, r0
+20.0          /* Scale factor, a0
 5.0           /* Mass
 2.0           /* Order of WENO. Do not change this value
 50.0          /* Furthest grid point
 0.01          /* Grid spacing
-10000          /* Save output every ## iterations
-10000         /* Print output every ## iterations
+300000          /* Save output every ## iterations
+50000         /* Print output every ## iterations
 4             /* Number of threads

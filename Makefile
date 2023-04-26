@@ -1,7 +1,7 @@
 FCOMP = gfortran
 
 FC = -c
-FFLAGS = -Wall -Wextra -Wconversion -pedantic
+FFLAGS = -Wall -Wextra -Wconversion -Wno-maybe-uninitialized -pedantic
 FOPT = -O3
 FOMP = -fopenmp
 
@@ -18,4 +18,4 @@ $(EXECUTABLE): $(OBJECTS) $(MODFILES)
 	$(FCOMP) $(FC) $(FFLAGS) $(FOPT) $(FOMP) $< -o $@
 
 clean:
-	rm -rf src/*.o src/*.mod $(EXECUTABLE)
+	rm -rf src/*.o $(EXECUTABLE)

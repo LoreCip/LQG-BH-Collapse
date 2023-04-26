@@ -6,15 +6,15 @@ then
 
 elif [ "$1" == 'remove' ]
 then
+
     DIRECTORY=$2
-    if [ ! -d "$DIRECTORY" ]; then
-        echo "$DIRECTORY does not exist. Cannot remove."
-    elif [ -z "" ]
-        echo "Folder must exist!"
+
+    if [ ! -d "$DIRECTORY" ]
+    then
+        echo "'$DIRECTORY' does not exist. Cannot remove."
+    else
+        rm -rf $2
     fi
-
-    rm -rf $2
-
 else
 
     if [ -z "$1" ]
@@ -24,17 +24,22 @@ else
         NAME=$1
     fi
 
-    mkdir $NAME
-    mkdir $NAME/outputs
+    if [ ! -z "$2" ]
+    then
+        echo "Specify only the name of the build!"
+    else
+        mkdir $NAME
+        mkdir $NAME/outputs
 
-    cp ParameterFile.dat $NAME
-    cp -r src/ $NAME/
-    cp Makefile $NAME
-    
-    cd $NAME
+        cp ParameterFile.dat $NAME
+        cp -r src/ $NAME/
 
-    make
+        cp Makefile $NAME
 
-    echo "All done!"
+        cd $NAME
 
+        make
+
+        echo "All done!"
+    fi
 fi
