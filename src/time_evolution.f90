@@ -83,7 +83,7 @@ subroutine RK_STEP(NX, u, x, dx, dt, nghost, u_step)
 !$OMP DO SCHEDULE(STATIC) PRIVATE(i, L, Bp, Bm, e_k, e_l)
     do i = 3, NX-2
         call WENO_RHS(NX, i, u, f_prime, x, dx, nghost, L, Bp, Bm, e_k, e_l)
-        u_step(i)    = u(i) + dt * (L + 0.5_RK * u(NX + i))
+        u_step(i)    = u(i) + dt * (L + 0.5_RK * u(NX+i))
         u_step(NX+i) = u(NX+i) + dt * ( vb(Bp, x(i)+0.5_RK*dx) * (u(NX+i) - e_k) + vb(Bm, x(i)-0.5_RK*dx) * (e_l - u(NX+i)) ) / dx
     end do
 !$OMP END DO

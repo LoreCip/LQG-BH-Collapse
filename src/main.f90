@@ -38,7 +38,6 @@ program LQGeq
                 N_output,&   ! Print output every
                 N_save,  &   ! Save every
                 nthreads     ! Number of threads for OpenMP
-    integer, dimension(5) :: unitNumbers
                 
     ! Iterators           
     integer :: i, counter
@@ -70,10 +69,6 @@ program LQGeq
     call inputParser(args(1), T_final, r0, a0, m, r, xM, h, N_save, N_output, nthreads)
 
     CALL OMP_SET_NUM_THREADS(nthreads)
-
-    if (N_save.gt.0) then
-        call openFiles(unitNumbers)
-    end if
 
     ! PRINT SUMMARY AND NICE OUTPUT
     write(*, "(A65)") "-----------------------------------------------------------------"
@@ -109,10 +104,11 @@ program LQGeq
     ! Produce initial data
     call initial_data(NX, xs, h, m, r0, a0, 0, u_p)
     
-    counter = 1
+    counter = 0
     ! Time evolution
     t = 0_RK
     done = .false.
+    BHpresent = .false.
     do while (t.lt.T_final)
 
         ! Determine dt from Courant condition
@@ -147,9 +143,9 @@ program LQGeq
                 ssum = ssum + (rho(i-1) * xs(i-1)**2 + rho(i) * xs(i)**2)
             end do
             ssum = 4 * PI * ssum * h * 0.5_RK
-
+            ! print*, ssum
             write(*, "(2x, F8.3, 3x, A2, 3x, I9, 4x, A2, 7x, l1, 8x, A2, 3x, E11.3)") &
-                    t, "||",  counter,  "||", BHpresent, "||",  ssum - m
+                    t, "||",  counter+1,  "||", BHpresent, "||",  ssum - m
         end if
 
         if ( (N_save.gt.0) .and. ((mod(counter, N_save).eq.0) .or. done) ) then
@@ -157,9 +153,9 @@ program LQGeq
             call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, rho)
             call saveOutput(args(2), NX, u(1:NX), u(NX+1:2*NX), rho, t, dt, BHpresent, nghost)
 
-            write(*, "(A65)") "-----------------------------------------------------------------"
-            write(*, "(A33, 1X, F9.4)") "Output saved at simulation time", t
-            write(*, "(A65)") "-----------------------------------------------------------------"
+            ! write(*, "(A65)") "-----------------------------------------------------------------"
+            ! write(*, "(A33, 1X, F9.4)") "Output saved at simulation time", t
+            ! write(*, "(A65)") "-----------------------------------------------------------------"
 
         end if
         counter = counter + 1
@@ -170,7 +166,7 @@ program LQGeq
                 u_p(i) = u(i)
             end do
         end if
-
+        
     end do
 
     deallocate(xs, u, u_p, rho, theta)

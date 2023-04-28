@@ -63,8 +63,8 @@ subroutine compRho(NX, dx, dt, B, BP, E, x, out)
     do i = 3, NX-2
         e_der(i) = ( E(i-2) - 8*E(i-1) + 8*E(i+1) - E(i+2) ) / (12_RK * dx) 
     end do
-    e_der(2) = ( -25_RK*E(i) + 48_RK*E(i+1) - 36_RK*E(i+2) + 16_RK*E(i+3) - 3_RK*E(i+4) ) / (12_RK * dx) 
-    e_der(NX-1) = ( 25_RK*E(i) - 48_RK*E(i-1) + 36_RK*E(i-2) - 16_RK*E(i-3) + 3_RK*E(i-4) ) / (12_RK * dx)
+    e_der(2) = ( -25_RK*E(2) + 48_RK*E(3) - 36_RK*E(4) + 16_RK*E(5) - 3_RK*E(6) ) / (12_RK * dx) 
+    e_der(NX-1) = ( 25_RK*E(NX-1) - 48_RK*E(NX-2) + 36_RK*E(NX-3) - 16_RK*E(NX-4) + 3_RK*E(NX-5) ) / (12_RK * dx)
     e_der(1) = e_der(2)
     e_der(NX) = e_der(NX-1)
 
@@ -89,7 +89,7 @@ subroutine CompExpansion(NX, B, E, x, theta)
     integer :: i
 
     do i = 1, NX
-        theta(i) = 1_RK - x(i)**2 / 4_RK * sin(2_RK * B(i) / x(i)**2)**2
+        theta(i) = 1_RK - x(i)**2 * sin(2_RK * B(i) / x(i)**2)**2 / ( 4_RK * (1_RK + E(i)) )
     end do
 
     return
