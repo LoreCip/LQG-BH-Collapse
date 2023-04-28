@@ -31,7 +31,7 @@ else
         mkdir $NAME
         mkdir $NAME/outputs
 
-        cp ParameterFile.dat $NAME
+        cp ParameterFile.par $NAME
         cp -r src/ $NAME/
 
         cp Makefile $NAME

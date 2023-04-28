@@ -17,13 +17,17 @@ program LQGeq
                     a0,      &   ! FRW param
                     m,       &   ! Total mass
                     t,       &   ! Integrated time
-                    dt           ! Time step
+                    dt,      &   ! Time step
+                    Tformation, &! Time of BH formation
+                    Texplosion   ! Time of BH explosion
+
     real(RK), dimension(:), allocatable :: &
                     xs,      &   ! Grid
                     u,       &   ! Solution
                     u_p,     &   ! Previous solution
-                    rho          ! Density profile
-
+                    rho,     &   ! Density profile
+                    theta,   &   ! Expansion  
+                    vvv
     ! Computational parameters
     real(RK) :: xM,      &   ! Outer boundary of the grid
                 h,       &   ! Grid spacing
@@ -34,16 +38,17 @@ program LQGeq
                 N_output,&   ! Print output every
                 N_save,  &   ! Save every
                 nthreads     ! Number of threads for OpenMP
+    integer, dimension(5) :: unitNumbers
                 
     ! Iterators           
     integer :: i, counter
-    logical :: done
+    logical :: done, BHpresent
 
     ! Input arguments
     integer :: num_args
-    character(len=100), dimension(2) :: args
+    character(len=1024), dimension(2) :: args
     ! Save
-    character(len=100) :: fpath
+    character(len=1024) :: fpath
 
     CALL system_clock(count_rate=rate)
     call SYSTEM_CLOCK(iTimes1)
@@ -55,7 +60,7 @@ program LQGeq
         call get_command_argument(i,args(i))
         if (args(i) .eq. '') then
             if (i.eq.1) then
-                args(i) = 'ParameterFile.dat'
+                args(i) = 'ParameterFile.par'
             else if (i .eq. 2) then
                 args(i) = 'outputs'
             end if
@@ -66,17 +71,14 @@ program LQGeq
 
     CALL OMP_SET_NUM_THREADS(nthreads)
 
-    ! Perform consistency checks
-    if (r .eq. 2) then
-        nghost = 1
-    else
-        STOP "Only r = 2 is implemented."
+    if (N_save.gt.0) then
+        call openFiles(unitNumbers)
     end if
 
     ! PRINT SUMMARY AND NICE OUTPUT
-    write(*, "(A48)") "------------------------------------------------"
+    write(*, "(A65)") "-----------------------------------------------------------------"
     write(*, "(A12)") "WENO3 SOLVER"
-    write(*, "(A48)") "------------------------------------------------"
+    write(*, "(A65)") "-----------------------------------------------------------------"
     write(*, "(A7)") "SUMMARY"
     write(*, "(A35, F9.2)") "   - Simulation time      :    ", T_final
     write(*, "(A35, E9.3)") "   - Grid spacing         :    ", h
@@ -84,22 +86,25 @@ program LQGeq
     write(*, "(A35, F9.2)") "   - Characteristic radius:    ", r0
     write(*, "(A35, F9.2)") "   - Initial scale factor :    ", a0
     write(*, "(A35, I9)")   "   - Number of threads    :    ", nthreads
-    write(*, "(A48)") "------------------------------------------------"
+    write(*, "(A65)") "-----------------------------------------------------------------"
     write(*, "(A48)") "              Starting simulation...            "
-    write(*, "(A48)") "------------------------------------------------"
-    write(*, "(A42)") "    Time   ||    Iteration   ||    M - M0 "
+    write(*, "(A65)") "-----------------------------------------------------------------"
+    write(*, "(A65)") "    Time     ||    Iteration   ||   BH present   ||    M - M0    "
 
     ! Array allocation 
     NX = int(xM / h + 1 + 2*nghost)
-    allocate(xs(NX), u(2*NX), u_p(2*NX), rho(NX), stat=error_code)
+    allocate(xs(NX), u(2*NX), u_p(2*NX), rho(NX), theta(NX), stat=error_code)
     if(error_code /= 0) STOP "Error during array allocations!"
 
+    
     ! Define numerical grid
     do i = 1, NX
         xs(i) = (eps + i - 1 - nghost) * h
     end do
-    fpath = trim(args(2)) // '/xs.dat'
-    call save(fpath, xs(nghost+1:NX-nghost), NX-2*nghost)
+    if (N_save .gt. 0) then
+        fpath = trim(args(2)) // '/xs.dat'
+        call save(fpath, xs(nghost+1:NX-nghost), NX-2*nghost)
+    end if
 
     ! Produce initial data
     call initial_data(NX, xs, h, m, r0, a0, 0, u_p)
@@ -119,13 +124,22 @@ program LQGeq
             done = .true.
         else
             t = t + dt
-        end if
+        end if      
 
         ! Perform time step
         call TVD_RK(NX, u_p, xs, h, dt, nghost, u)
+        call CompExpansion(NX, u(1:NX), u(NX+1:2*NX), xs, theta)
+
+        if ( (BHpresent.eqv..false.) .and. any(theta.lt.0) ) then
+            BHpresent = .true.
+            Tformation = t
+        else if ( (BHpresent.eqv..true.) .and. all(theta.gt.0) ) then
+            BHpresent = .false.
+            Texplosion = t
+        end if
 
         ! TERMINAL OUTPUT
-        if (mod(counter, N_output).eq.0) then
+        if ( (N_output.gt.0) .and. (mod(counter, N_output).eq.0) ) then
             call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, rho)
             ! COMPUTE MASS
             ssum = 0_RK
@@ -134,15 +148,19 @@ program LQGeq
             end do
             ssum = 4 * PI * ssum * h * 0.5_RK
 
-            write(*, "(2x, F6.3, 3x, A2, 3x, I9, 4x, A2, 3x, E11.3)") t, "||",  counter,  "||",  ssum - m
+            write(*, "(2x, F8.3, 3x, A2, 3x, I9, 4x, A2, 7x, l1, 8x, A2, 3x, E11.3)") &
+                    t, "||",  counter,  "||", BHpresent, "||",  ssum - m
         end if
 
-        if ( (mod(counter, N_save).eq.0).or.done ) then
+        if ( (N_save.gt.0) .and. ((mod(counter, N_save).eq.0) .or. done) ) then
+
             call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, rho)
-            call saveOutput(args(2), NX, u(1:NX), u(NX+1:2*NX), rho, nghost)
-            write(*, "(A48)") "------------------------------------------------"
-            write(*, "(A31, 1X, F9.4)") "Output saved at simulation time", t
-            write(*, "(A48)") "------------------------------------------------"
+            call saveOutput(args(2), NX, u(1:NX), u(NX+1:2*NX), rho, t, dt, BHpresent, nghost)
+
+            write(*, "(A65)") "-----------------------------------------------------------------"
+            write(*, "(A33, 1X, F9.4)") "Output saved at simulation time", t
+            write(*, "(A65)") "-----------------------------------------------------------------"
+
         end if
         counter = counter + 1
 
@@ -155,11 +173,19 @@ program LQGeq
 
     end do
 
-    deallocate(xs, u, u_p, rho)
+    deallocate(xs, u, u_p, rho, theta)
 
-    write(*, "(A48)") "------------------------------------------------"
+    if (N_save .gt. 0) then
+        allocate(vvv(4))
+        fpath = trim(args(2)) // '/details.dat'
+        vvv = (/ m, h, Tformation, Texplosion /)
+        call save(fpath, vvv, size(vvv))
+        deallocate(vvv)
+    end if
+
+    write(*, "(A65)") "-----------------------------------------------------------------"
     write(*, "(A48)") "                  All done!                     "
-    write(*, "(A48)") "------------------------------------------------"
+    write(*, "(A65)") "-----------------------------------------------------------------"
 
     call SYSTEM_CLOCK(iTimes2)
     xxx = real(iTimes2-iTimes1)/real(rate)

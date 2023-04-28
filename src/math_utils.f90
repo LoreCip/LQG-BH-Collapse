@@ -57,8 +57,8 @@ subroutine compRho(NX, dx, dt, B, BP, E, x, out)
     real(RK), dimension(NX), intent(out) :: out
 
     integer :: i
-    real(RK), parameter :: PI=4._RK*DATAN(1._RK)
     real(RK), dimension(NX) :: e_der
+    real(RK), parameter :: PI=4._RK*DATAN(1._RK)
 
     do i = 3, NX-2
         e_der(i) = ( E(i-2) - 8*E(i-1) + 8*E(i+1) - E(i+2) ) / (12_RK * dx) 
@@ -76,3 +76,21 @@ subroutine compRho(NX, dx, dt, B, BP, E, x, out)
 
     return
 end subroutine compRho
+
+subroutine CompExpansion(NX, B, E, x, theta)
+
+    use iso_fortran_env, only: RK => real64
+    implicit none
+
+    integer,                 intent(in)  :: NX
+    real(RK), dimension(NX), intent(in)  :: B, E, x
+    real(RK), dimension(NX), intent(out) :: theta
+
+    integer :: i
+
+    do i = 1, NX
+        theta(i) = 1_RK - x(i)**2 / 4_RK * sin(2_RK * B(i) / x(i)**2)**2
+    end do
+
+    return
+end subroutine CompExpansion

@@ -85,14 +85,14 @@ subroutine alpha(NX, i, u, f_prime, out0, out1)
     real(RK),                intent(out):: out0, out1
     
     real(RK) :: SI
-    real(RK), parameter :: epsilon = 0.000001_RK
+    real(RK), parameter :: epsilon = 1E-7_RK
     
     if (f_prime(i) .gt. 0) then
-        out0 = 1._RK / 3._RK / ( epsilon + SI(u(i), u(i-1)) )**2
-        out1 = 2._RK / 3._RK / ( epsilon + SI(u(i+1), u(i)) )**2
+        out0 = 1._RK / 2._RK / ( epsilon + SI(u(i), u(i-1)) )**2
+        out1 = 1._RK         / ( epsilon + SI(u(i+1), u(i)) )**2
     else        
-        out0 = 2._RK / 3._RK / ( epsilon + SI(u(i), u(i+1)) )**2
-        out1 = 1._RK / 3._RK / ( epsilon + SI(u(i+1), u(i+2)) )**2
+        out0 = 1._RK         / ( epsilon + SI(u(i), u(i-1)) )**2
+        out1 = 1._RK / 2._RK / ( epsilon + SI(u(i+1), u(i)) )**2
     end if
 
     return
