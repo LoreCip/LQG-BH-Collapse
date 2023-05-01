@@ -2,7 +2,7 @@ FCOMP = gfortran
 
 FC = -c
 FFLAGS = -Wall -Wextra -Wconversion -Wno-maybe-uninitialized -pedantic
-FOPT = -O3
+FOPT = -march=native -funroll-loops -flto
 FOMP = -fopenmp
 
 EXECUTABLE = run

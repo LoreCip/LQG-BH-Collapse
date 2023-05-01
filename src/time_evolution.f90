@@ -13,7 +13,7 @@ subroutine TVD_RK(NX, u_p, x, dx, dt, nghost, uf)
     real(RK), dimension(2*NX) :: u1, u2, u12, u32
     integer :: i
 
-!$OMP PARALLEL
+!$OMP PARALLEL SHARED(NX, dx, dt, nghost, u_p, u1, u2, u12, u32)
     ! 1**) t      --> t +   dt
     call RK_STEP(NX, u_p, x, dx, dt, nghost, u1)
     
@@ -63,7 +63,7 @@ subroutine RK_STEP(NX, u, x, dx, dt, nghost, u_step)
     real(RK) :: L, Bp, Bm, e_k, e_l, vb
     real(RK), dimension(NX) :: f_prime
 
-!$OMP DO SCHEDULE(STATIC) 
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
     do i = 1, NX
         f_prime(i) = vb(u(i), x(i))
     end do

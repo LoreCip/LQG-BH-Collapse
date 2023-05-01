@@ -4,12 +4,14 @@ program LQGeq
     use OMP_LIB
     implicit none
 
-    real(RK) :: xxx
+    real(RK) :: systemtime
     integer  :: iTimes1, iTimes2, rate
 
     integer :: error_code
+    integer, dimension(4) :: ufiles
 
     ! Physical parameters
+    integer, parameter  :: nghost = 1 ! Number of ghost cells
     real(RK), parameter :: eps = 0.0001_RK, PI=4._RK*DATAN(1._RK)
 
     real(RK) :: T_final, &   ! Max integration time
@@ -31,9 +33,12 @@ program LQGeq
     ! Computational parameters
     real(RK) :: xM,      &   ! Outer boundary of the grid
                 h,       &   ! Grid spacing
-                ssum        
+                ssum,    &
+                logic2dbl
+
+    real(RK), dimension(3) :: ttt
+
     integer  :: r,       &   ! Order of the WENO method
-                nghost,  &   ! Number of ghost cells
                 NX,      &   ! Number of points in xs
                 N_output,&   ! Print output every
                 N_save,  &   ! Save every
@@ -45,9 +50,9 @@ program LQGeq
 
     ! Input arguments
     integer :: num_args
-    character(len=1024), dimension(2) :: args
+    character(len=4096), dimension(2) :: args
     ! Save
-    character(len=1024) :: fpath
+    character(len=4096) :: fpath
 
     CALL system_clock(count_rate=rate)
     call SYSTEM_CLOCK(iTimes1)
@@ -97,8 +102,16 @@ program LQGeq
         xs(i) = (eps + i - 1 - nghost) * h
     end do
     if (N_save .gt. 0) then
+
+        ufiles = (/ 100, 101, 102, 103/)
+
         fpath = trim(args(2)) // '/xs.dat'
-        call save(fpath, xs(nghost+1:NX-nghost), NX-2*nghost)
+        open(unit=99, file=fpath, status='new', POSITION='append')
+        call saveOutput(99, NX, xs)
+        close(99)
+        
+        call openOutput(size(ufiles), ufiles, trim(args(2)))
+
     end if
 
     ! Produce initial data
@@ -109,7 +122,7 @@ program LQGeq
     t = 0_RK
     done = .false.
     BHpresent = .false.
-    do while (t.lt.T_final)
+    do while (done.eqv..false.)
 
         ! Determine dt from Courant condition
         call CLF(NX, u_p(1:NX), xs, h, dt)
@@ -145,19 +158,25 @@ program LQGeq
             ssum = 4 * PI * ssum * h * 0.5_RK
             ! print*, ssum
             write(*, "(2x, F8.3, 3x, A2, 3x, I9, 4x, A2, 7x, l1, 8x, A2, 3x, E11.3)") &
-                    t, "||",  counter+1,  "||", BHpresent, "||",  ssum - m
+                    t, "||",  counter,  "||", BHpresent, "||",  ssum - m
         end if
 
         if ( (N_save.gt.0) .and. ((mod(counter, N_save).eq.0) .or. done) ) then
 
             call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, rho)
-            call saveOutput(args(2), NX, u(1:NX), u(NX+1:2*NX), rho, t, dt, BHpresent, nghost)
+
+            call saveOutput(ufiles(1), NX-2, u(2:NX-1))
+            call saveOutput(ufiles(2), NX-2, u(NX+2:2*NX-1))
+            call saveOutput(ufiles(3), NX-2, rho(2:NX-1))
+            ttt = (/t, dt, logic2dbl(BHpresent) /)
+            call saveOutput(ufiles(4), size(ttt), ttt)
 
             ! write(*, "(A65)") "-----------------------------------------------------------------"
             ! write(*, "(A33, 1X, F9.4)") "Output saved at simulation time", t
             ! write(*, "(A65)") "-----------------------------------------------------------------"
 
         end if
+
         counter = counter + 1
 
         ! Update previous step
@@ -170,12 +189,15 @@ program LQGeq
     end do
 
     deallocate(xs, u, u_p, rho, theta)
-
+    call closeOutput(size(ufiles), ufiles)
+    
     if (N_save .gt. 0) then
         allocate(vvv(4))
         fpath = trim(args(2)) // '/details.dat'
         vvv = (/ m, h, Tformation, Texplosion /)
-        call save(fpath, vvv, size(vvv))
+        open(unit=104, file=fpath, status='new', POSITION='append')
+        call saveOutput(104, size(vvv), vvv)
+        close(104)
         deallocate(vvv)
     end if
 
@@ -184,7 +206,7 @@ program LQGeq
     write(*, "(A65)") "-----------------------------------------------------------------"
 
     call SYSTEM_CLOCK(iTimes2)
-    xxx = real(iTimes2-iTimes1)/real(rate)
-    write(*, "(A21,1x, F7.2, A9)") "Total system runtime:", xxx, " seconds."
+    systemtime = real(iTimes2-iTimes1)/real(rate)
+    write(*, "(A21,1x, F10.2, A9)") "Total system runtime:", systemtime, " seconds."
 
 end program LQGeq

@@ -107,54 +107,61 @@ subroutine paramChecker(inputs, error_code, error_string)
 end subroutine paramChecker
 
 
-subroutine saveOutput(path, NX, B, E, rho, t, dt, BHpresent, nghost)
+subroutine openOutput(d, ufiles, path)
+
+    implicit none
+
+    integer,               intent(in) :: d
+    integer, dimension(d), intent(in) :: ufiles
+    character(len=*),      intent(in) :: path
+
+    character(len=4096)              :: fpath
+    character(len=100), dimension(4) :: string_array
+
+    integer :: i
+
+    ! Assign values to string array
+    string_array(1) = '/B.dat'
+    string_array(2) = '/E.dat'
+    string_array(3) = '/rho.dat'
+    string_array(4) = '/times.dat'
+
+    do i = 1, d
+        fpath = path // string_array(i)
+        open(unit=ufiles(i), file=fpath, status='new', POSITION='append')
+    end do
+    
+end subroutine openOutput
+
+subroutine saveOutput(ufile, d, var)
     
     use iso_fortran_env, only: RK => real64
     implicit none
 
-    character(len=*)       , intent(in) :: path
-    integer                , intent(in) :: NX, nghost
-    real(RK), dimension(NX), intent(in) :: B, E, rho
-    real(RK),                intent(in) :: t, dt
-    logical,                 intent(in) :: BHpresent
+    integer ,               intent(in) :: ufile, d
+    real(RK), dimension(d), intent(in) :: var
 
-    character(len=1024) :: fpath
-    real(RK) :: logic2dbl
-    real(RK), dimension(3) :: vvv
+    integer :: i
 
-    fpath = trim(path) // '/B.dat'
-    call save(fpath, B(nghost+1:NX-nghost), NX-2*nghost)
-    
-    fpath = trim(path) // '/E.dat'
-    call save(fpath, E(nghost+1:NX-nghost), NX-2*nghost)
-    
-    fpath = trim(path) // '/rho.dat'
-    call save(fpath, rho(nghost+1:NX-nghost), NX-2*nghost)
-    
-    fpath = trim(path) // '/times.dat'
-    vvv = (/t, dt, logic2dbl(BHpresent) /)
-    call save(fpath, vvv, size(vvv))
+    write(ufile, *) (var(i), i = 1, d)
 
     return
 end subroutine saveOutput
 
-subroutine save(path, var, NX)
+subroutine closeOutput(d, ufiles)
 
-    use iso_fortran_env, only: RK => real64
     implicit none
 
-    character(len=100)     , intent(in) :: path
-    integer                , intent(in) :: NX
-    real(RK), dimension(NX), intent(in) :: var
+    integer,               intent(in) :: d
+    integer, dimension(d), intent(in) :: ufiles
 
-    integer :: i, ufile        ! Output file
-
-    open(newunit=ufile, file=path, status='UNKNOWN', POSITION='append')
-    write(ufile, *) (var(i), i = 1, NX)
-    close(ufile)
-
-return
-end subroutine save
+    integer :: i
+    
+    do i = 1, d
+        close(ufiles(i))
+    end do
+    
+end subroutine closeOutput
 
 
 double precision function logic2dbl(a)
