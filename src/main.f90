@@ -46,7 +46,7 @@ program LQGeq
                 
     ! Iterators           
     integer :: i, counter
-    logical :: done, BHpresent
+    logical :: done, BHpresent, saveO, printO
 
     ! Input arguments
     integer :: num_args
@@ -73,7 +73,7 @@ program LQGeq
     
     call inputParser(args(1), T_final, r0, a0, m, r, xM, h, N_save, N_output, nthreads)
 
-    CALL OMP_SET_NUM_THREADS(nthreads)
+    !$ call OMP_SET_NUM_THREADS(nthreads)
 
     ! PRINT SUMMARY AND NICE OUTPUT
     write(*, "(A65)") "-----------------------------------------------------------------"
@@ -107,7 +107,7 @@ program LQGeq
 
         fpath = trim(args(2)) // '/xs.dat'
         open(unit=99, file=fpath, status='new', POSITION='append')
-        call saveOutput(99, NX, xs)
+        call saveOutput(99, NX-2, xs(1:NX-1))
         close(99)
         
         call openOutput(size(ufiles), ufiles, trim(args(2)))
@@ -122,7 +122,7 @@ program LQGeq
     t = 0_RK
     done = .false.
     BHpresent = .false.
-    do while (done.eqv..false.)
+    do while (.not.done)
 
         ! Determine dt from Courant condition
         call CLF(NX, u_p(1:NX), xs, h, dt)
@@ -139,17 +139,23 @@ program LQGeq
         call TVD_RK(NX, u_p, xs, h, dt, nghost, u)
         call CompExpansion(NX, u(1:NX), u(NX+1:2*NX), xs, theta)
 
-        if ( (BHpresent.eqv..false.) .and. any(theta.lt.0) ) then
+        if ( (.not.BHpresent) .and. any(theta.lt.0) ) then
             BHpresent = .true.
             Tformation = t
-        else if ( (BHpresent.eqv..true.) .and. all(theta.gt.0) ) then
+        else if ( (BHpresent) .and. all(theta.gt.0) ) then
             BHpresent = .false.
             Texplosion = t
         end if
 
-        ! TERMINAL OUTPUT
-        if ( (N_output.gt.0) .and. (mod(counter, N_output).eq.0) ) then
+        saveO = (N_save.gt.0) .and. ((mod(counter, N_save).eq.0) .or. done)
+        printO = (N_output.gt.0) .and. ((mod(counter, N_output).eq.0) .or. done)
+
+        if ( saveO .or. printO ) then
             call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, rho)
+        end if
+
+        ! TERMINAL OUTPUT
+        if ( printO ) then
             ! COMPUTE MASS
             ssum = 0_RK
             do i = 3, NX-1
@@ -161,10 +167,8 @@ program LQGeq
                     t, "||",  counter,  "||", BHpresent, "||",  ssum - m
         end if
 
-        if ( (N_save.gt.0) .and. ((mod(counter, N_save).eq.0) .or. done) ) then
-
-            call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, rho)
-
+        if ( saveO ) then
+            
             call saveOutput(ufiles(1), NX-2, u(2:NX-1))
             call saveOutput(ufiles(2), NX-2, u(NX+2:2*NX-1))
             call saveOutput(ufiles(3), NX-2, rho(2:NX-1))
@@ -180,7 +184,7 @@ program LQGeq
         counter = counter + 1
 
         ! Update previous step
-        if ( t.lt.T_final ) then
+        if ( .not.done ) then
             do i = 1, 2*NX
                 u_p(i) = u(i)
             end do

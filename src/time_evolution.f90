@@ -21,7 +21,7 @@ subroutine TVD_RK(NX, u_p, x, dx, dt, nghost, uf)
     call RK_STEP(NX, u1, x, dx, dt, nghost, u2)
 
     ! 3**) t + dt/2
-!$OMP DO SCHEDULE(STATIC) private(i)
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
     do i = 1, 2*NX
         u12(i) = 3_RK*u_p(i)/4_RK + u2(i)/4_RK
     end do
@@ -35,7 +35,7 @@ subroutine TVD_RK(NX, u_p, x, dx, dt, nghost, uf)
     call RK_STEP(NX, u12, x, dx, dt, nghost, u32)
 
     ! 5**) t + dt
-!$OMP DO SCHEDULE(STATIC) private(i)
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
     do i = 1, 2*NX
         uf(i) = u_p(i)/3_RK + 2_RK*u32(i)/3_RK
     end do
@@ -115,8 +115,8 @@ subroutine CLF(NX, u, x, dx, dt)
     v_abs = abs(max(-v_min, v_max))
 
     dt = fact * dx / v_abs
-    if (dt .gt. 0.01_RK*dx) then
-       dt = 0.01_RK*dx  ! largest timestep allowed
+    if (dt .gt. 0.1_RK*dx) then
+       dt = 0.1_RK*dx  ! largest timestep allowed
     end if
 
     return

@@ -5,7 +5,7 @@ subroutine inputParser(path, T_final, r0, a0, m, r, xM, h, N_save, N_output, nth
     use iso_fortran_env, only: RK => real64
     implicit none
     
-    character(len=100), intent(in) :: path
+    character(len=4096), intent(in) :: path
     real(RK)          , intent(out):: T_final, r0, a0, m, xM, h
     integer           , intent(out):: r, N_save, N_output, nthreads
 
