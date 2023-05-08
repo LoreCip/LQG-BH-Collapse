@@ -1,7 +1,7 @@
 FCOMP = gfortran
 
 FC = -c
-FFLAGS = -Wall -Wextra -Wconversion -Wno-maybe-uninitialized -pedantic
+FFLAGS = -Wall -Wextra -Wconversion -Wno-maybe-uninitialized -pedantic -ffree-line-length-none
 FOPT = -O3 -march=native -funroll-loops -flto
 FOMP = -fopenmp
 
