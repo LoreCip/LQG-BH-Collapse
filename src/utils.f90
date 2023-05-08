@@ -116,7 +116,7 @@ subroutine openOutput(d, ufiles, path)
     character(len=*),      intent(in) :: path
 
     character(len=4096)              :: fpath
-    character(len=100), dimension(4) :: string_array
+    character(len=4096), dimension(4) :: string_array, header
 
     integer :: i
 
@@ -126,9 +126,15 @@ subroutine openOutput(d, ufiles, path)
     string_array(3) = '/rho.dat'
     string_array(4) = '/times.dat'
 
+    header(1) = "# B field"
+    header(2) = "# Spatial curvature eps^b field"
+    header(3) = "# Density field"
+    header(4) = "# Time dt BH_present"
+
     do i = 1, d
         fpath = path // string_array(i)
         open(unit=ufiles(i), file=fpath, status='new', POSITION='append')
+        write(ufiles(i), *) header(i)
     end do
     
 end subroutine openOutput

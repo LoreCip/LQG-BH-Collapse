@@ -28,8 +28,8 @@ else
     then
         echo "Specify only the name of the build!"
     else
-        mkdir $NAME
-        mkdir $NAME/outputs
+        mkdir -p $NAME
+        mkdir -p $NAME/outputs
 
         cp ParameterFile.par $NAME
         cp -r src/ $NAME/

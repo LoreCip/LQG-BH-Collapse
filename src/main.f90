@@ -27,6 +27,10 @@ program LQGeq
                     xs,      &   ! Grid
                     u,       &   ! Solution
                     u_p,     &   ! Previous solution
+                    u1, u2, u12, u32, &
+                    f_prime, &
+                    vel,     &
+                    e_der,   &
                     rho,     &   ! Density profile
                     theta,   &   ! Expansion  
                     vvv
@@ -46,7 +50,7 @@ program LQGeq
                 
     ! Iterators           
     integer :: i, counter
-    logical :: done, BHpresent, saveO, printO
+    logical :: done, BHpresent, printO, saveO
 
     ! Input arguments
     integer :: num_args
@@ -95,6 +99,8 @@ program LQGeq
     NX = int(xM / h + 1 + 2*nghost)
     allocate(xs(NX), u(2*NX), u_p(2*NX), rho(NX), theta(NX), stat=error_code)
     if(error_code /= 0) STOP "Error during array allocations!"
+    allocate(e_der(NX), vel(NX), u1(2*NX), u2(2*NX), u12(2*NX), u32(2*NX), f_prime(NX), stat=error_code)
+    if(error_code /= 0) STOP "Error during array allocations!"
 
     
     ! Define numerical grid
@@ -107,7 +113,8 @@ program LQGeq
 
         fpath = trim(args(2)) // '/xs.dat'
         open(unit=99, file=fpath, status='new', POSITION='append')
-        call saveOutput(99, NX-2, xs(1:NX-1))
+        write(99, *) "# X grid"
+        call saveOutput(99, NX-2, xs(2:NX-1))
         close(99)
         
         call openOutput(size(ufiles), ufiles, trim(args(2)))
@@ -122,11 +129,13 @@ program LQGeq
     t = 0_RK
     done = .false.
     BHpresent = .false.
+!$OMP PARALLEL DEFAULT(SHARED)
     do while (.not.done)
 
         ! Determine dt from Courant condition
-        call CLF(NX, u_p(1:NX), xs, h, dt)
+        call CLF(NX, u_p(1:NX), xs, h, vel, dt)
 
+!$OMP SINGLE
         if ((t + dt).gt.T_final) then
             dt = T_final - t
             t = T_final
@@ -134,11 +143,14 @@ program LQGeq
         else
             t = t + dt
         end if      
-
+!$OMP END SINGLE NOWAIT
+        
         ! Perform time step
-        call TVD_RK(NX, u_p, xs, h, dt, nghost, u)
+        call TVD_RK(NX, u_p,  u1, u2, u12, u32, f_prime, xs, h, dt, nghost, u)
         call CompExpansion(NX, u(1:NX), u(NX+1:2*NX), xs, theta)
 
+!$OMP SECTIONS
+    !$OMP SECTION
         if ( (.not.BHpresent) .and. any(theta.lt.0) ) then
             BHpresent = .true.
             Tformation = t
@@ -146,34 +158,47 @@ program LQGeq
             BHpresent = .false.
             Texplosion = t
         end if
-
+    !$OMP SECTION
         saveO = (N_save.gt.0) .and. ((mod(counter, N_save).eq.0) .or. done)
+    !$OMP SECTION
         printO = (N_output.gt.0) .and. ((mod(counter, N_output).eq.0) .or. done)
+!$OMP END SECTIONS
 
         if ( saveO .or. printO ) then
-            call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, rho)
+            call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, e_der, rho)
         end if
 
         ! TERMINAL OUTPUT
         if ( printO ) then
             ! COMPUTE MASS
-            ssum = 0_RK
-            do i = 3, NX-1
-                ssum = ssum + (rho(i-1) * xs(i-1)**2 + rho(i) * xs(i)**2)
+!$OMP SINGLE
+            ssum = 0.5_RK * (rho(2) * xs(2)**2 + rho(NX-1) * xs(NX-1)**2)
+!$OMP END SINGLE
+!$OMP DO PRIVATE(i) REDUCTION(+:ssum)
+            do i = 3, NX-2
+                ssum = ssum + rho(i) * xs(i)**2
             end do
-            ssum = 4 * PI * ssum * h * 0.5_RK
-            ! print*, ssum
-            write(*, "(2x, F8.3, 3x, A2, 3x, I9, 4x, A2, 7x, l1, 8x, A2, 3x, E11.3)") &
+!$OMP END DO
+!$OMP MASTER
+            ssum = 4 * PI * ssum * h
+            write(*, "(2x, F8.3, 3x, A2, 3x, I9, 4x, A2, 7x, l1, 8x, A2, 3x, E11.3, 1X, I1)") &
                     t, "||",  counter,  "||", BHpresent, "||",  ssum - m
+!$OMP END MASTER
         end if
 
         if ( saveO ) then
-            
+
+!$OMP SECTIONS
+    !$OMP SECTION
             call saveOutput(ufiles(1), NX-2, u(2:NX-1))
+    !$OMP SECTION
             call saveOutput(ufiles(2), NX-2, u(NX+2:2*NX-1))
+    !$OMP SECTION
             call saveOutput(ufiles(3), NX-2, rho(2:NX-1))
+    !$OMP SECTION
             ttt = (/t, dt, logic2dbl(BHpresent) /)
             call saveOutput(ufiles(4), size(ttt), ttt)
+!$OMP END SECTIONS NOWAIT
 
             ! write(*, "(A65)") "-----------------------------------------------------------------"
             ! write(*, "(A33, 1X, F9.4)") "Output saved at simulation time", t
@@ -181,18 +206,24 @@ program LQGeq
 
         end if
 
+!$OMP MASTER
         counter = counter + 1
+!$OMP END MASTER
 
         ! Update previous step
         if ( .not.done ) then
+!$OMP DO PRIVATE(i)
             do i = 1, 2*NX
                 u_p(i) = u(i)
             end do
+!$OMP END DO
         end if
-        
-    end do
 
-    deallocate(xs, u, u_p, rho, theta)
+    
+    end do
+!$OMP END PARALLEL
+
+    deallocate(xs, e_der, vel, u, u_p, u1, u2, u12, u32, f_prime, rho, theta)
     call closeOutput(size(ufiles), ufiles)
     
     if (N_save .gt. 0) then
@@ -200,6 +231,7 @@ program LQGeq
         fpath = trim(args(2)) // '/details.dat'
         vvv = (/ m, h, Tformation, Texplosion /)
         open(unit=104, file=fpath, status='new', POSITION='append')
+        write(104, *) "# Mass dx BH_formation_time BH_explosion_time"
         call saveOutput(104, size(vvv), vvv)
         close(104)
         deallocate(vvv)
