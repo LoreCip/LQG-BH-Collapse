@@ -14,6 +14,7 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
 
     real(RK), parameter :: PI=4._RK*DATAN(1._RK)
 
+    ! Full dynamics, starting from step function
     if ( idx .eq. 0 ) then
 
         ! Physical values
@@ -25,17 +26,8 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
             ! B(x)
             u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK)
         end do
-        
-        u(2) = 0_RK
-        u(NX+2) = 0_RK
-        
-        ! Ghosts
-        u(1) = u(2)
-        u(NX) = u(NX-1)
-        u(NX+1) = u(NX+2)
-        u(2*NX) = u(2*NX-1)
 
-
+    ! Post bounce dynamics, starting from step function
     else if ( idx .eq. 1 ) then
 
         ! Physical values
@@ -50,17 +42,21 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
                     + x(i)**2 * ( - PI + asin(sqrt(2_RK * Mass / x(i)**3_RK + u(NX+i) / x(i)**2_RK)) ) * th
         end do
 
-        u(2) = 0_RK
-        u(NX+2) = 0_RK
-
-        ! Ghosts
-        u(1) = u(2)
-        u(NX) = u(NX-1)
-        u(NX+1) = u(NX+2)
-        u(2*NX) = u(2*NX-1)
-        
-
+    ! Post bounce dynamics, starting from delta function
     else if ( idx .eq. 2 ) then
+
+        ! Physical values
+        do i = 1, NX-1
+            th = heaviside(r0 - x(i))
+            ! E(x)
+            u(NX+i) = - r0**2 / a0**2 * (1_RK - th)
+            ! B(x)
+            u(i) =  - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * m / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK) * (1_RK - th)  &
+                    - PI * x(i)**2 * th
+        end do
+
+    ! Full dynamics, starting from atan density profile
+    else if ( idx .eq. 3 ) then
 
         do i = 1, NX
             rr(i) = 3_RK * m * (PI/2_RK - atan(x(i) - r0) )  / (8_RK * PI * r0**3)
@@ -84,17 +80,16 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
             u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Marray(i) / x(i)**3_RK - 2_RK * u(NX+i) /  x(i)**2_RK)
         end do
 
-        u(2) = 0_RK
-        u(NX+2) = 0_RK
-
-        ! Ghosts
-        u(1) = u(2)
-        u(NX) = u(NX-1)
-        u(NX+1) = u(NX+2)
-        u(2*NX) = u(2*NX-1)
-
     end if
     
+    u(2) = 0_RK
+    u(NX+2) = 0_RK
+
+    ! Ghosts
+    u(1) = u(2)
+    u(NX) = u(NX-1)
+    u(NX+1) = u(NX+2)
+    u(2*NX) = u(2*NX-1)
     
 return
 end subroutine initial_data

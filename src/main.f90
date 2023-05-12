@@ -165,7 +165,8 @@ program LQGeq
 !$OMP END SECTIONS
 
         if ( saveO .or. printO ) then
-            call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, e_der, rho)
+            call compRho(NX, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), u_p(NX+1:2*NX), xs, rho)
+            ! call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, e_der, rho)
         end if
 
         ! TERMINAL OUTPUT

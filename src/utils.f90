@@ -134,7 +134,7 @@ subroutine openOutput(d, ufiles, path)
     do i = 1, d
         fpath = path // string_array(i)
         open(unit=ufiles(i), file=fpath, status='new', POSITION='append')
-        write(ufiles(i), *) header(i)
+        write(ufiles(i), *) trim(header(i))
     end do
     
 end subroutine openOutput

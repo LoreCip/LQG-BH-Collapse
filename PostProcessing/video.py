@@ -1,5 +1,5 @@
 import os
-import subprocess
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -30,7 +30,7 @@ def plotting(inputs):
         ax2.plot(X, B)
         ax3.plot(X, eps)
 
-        ax1.set(xlim=[0,50], ylim=[0, 1.3*np.max(rho)])
+        ax1.set(xlim=[0,50], ylim=[0, min(3, 1.3*np.max(rho))])
         ax2.set(xlim=[0,50], ylim=[1.3*np.min(B), 0])
         ax3.set(xlim=[0,50], ylim=[1e-2+1.3*np.min(eps), 1.3*np.max(eps)])
 
@@ -47,14 +47,19 @@ def plotting(inputs):
 
 def ProduceInputs(ppath, times, last_line, pline):
 
-    X = np.loadtxt(ppath + '/outputs/xs.dat', skiprows = last_line, max_rows = pline)
-    B = np.loadtxt(ppath + '/outputs/B.dat', skiprows = last_line, max_rows = pline)
-    eps = np.loadtxt(ppath + '/outputs/E.dat', skiprows = last_line, max_rows = pline)
-    rho = np.loadtxt(ppath + '/outputs/rho.dat', skiprows = last_line, max_rows = pline)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore",category=UserWarning)
+        times = np.loadtxt(ppath + '/outputs/times.dat', skiprows = last_line, max_rows = pline)
+        B = np.loadtxt(ppath + '/outputs/B.dat', skiprows = last_line, max_rows = pline)
+        eps = np.loadtxt(ppath + '/outputs/E.dat', skiprows = last_line, max_rows = pline)
+        rho = np.loadtxt(ppath + '/outputs/rho.dat', skiprows = last_line, max_rows = pline)
 
     return [(last_line + i, X, B[i,:], eps[i,:], rho[i,:], times[last_line+i, 0]) for i in range(pline)]
 
 def GenerateVideo(ppath, n_partitions):
+
+    if n_partitions <= 0:
+        n_partitions = 1
 
     Path("./.frames/").mkdir(parents=True, exist_ok=True)
 
@@ -89,7 +94,7 @@ if __name__ == "__main__":
     # PARSE command line arguments
     #################################
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"hP:")
+        opts, args = getopt.getopt(sys.argv[1:],"hP:b:")
     except :
         print(usage)
         sys.exit(2)
@@ -101,10 +106,10 @@ if __name__ == "__main__":
         elif (opt == '-P') :
             PATH = str(arg)
         elif (opt == '-b') :
-            batches = str(arg)
+            batches = int(arg)
 
     ####################################
     # END PARSE command line arguments
     ####################################
 
-    GenerateModel(PATH, batches) 
+    GenerateVideo(PATH, batches) 
