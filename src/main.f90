@@ -46,8 +46,8 @@ program LQGeq
                 NX,      &   ! Number of points in xs
                 N_output,&   ! Print output every
                 N_save,  &   ! Save every
-                nthreads     ! Number of threads for OpenMP
-                
+                nthreads,&   ! Number of threads for OpenMP
+                id           ! Initial data index
     ! Iterators           
     integer :: i, counter
     logical :: done, BHpresent, printO, saveO
@@ -75,7 +75,7 @@ program LQGeq
         end if
     end do
     
-    call inputParser(args(1), T_final, r0, a0, m, r, xM, h, N_save, N_output, nthreads)
+    call inputParser(args(1), id, T_final, r0, a0, m, r, xM, h, N_save, N_output, nthreads)
 
     !$ call OMP_SET_NUM_THREADS(nthreads)
 
@@ -122,7 +122,7 @@ program LQGeq
     end if
 
     ! Produce initial data
-    call initial_data(NX, xs, h, m, r0, a0, 0, u_p)
+    call initial_data(NX, xs, h, m, r0, a0, id, u_p)
     
     counter = 0
     ! Time evolution
