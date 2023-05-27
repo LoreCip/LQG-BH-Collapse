@@ -71,7 +71,8 @@ subroutine paramChecker(inputs, error_code, error_string)
     character(1024)        , intent(out) :: error_string
 
     real(RK) :: tmp
-
+    integer, dimension(4) :: valid_ids
+    
     error_code = 0
 
     ! Physical conditions
@@ -99,7 +100,8 @@ subroutine paramChecker(inputs, error_code, error_string)
     end if
         
     ! id = 0,1,2,3
-    if ( any(inputs(1) == (/ 0,1,2,3 /)) ) then
+    valid_ids = (/ 0, 1, 2, 3 /)
+    if ( .not.any(int(inputs(1)) == valid_ids) ) then
         error_code = 4
         error_string = "Initial data index not valid. id = 0,1,2,3"
         return

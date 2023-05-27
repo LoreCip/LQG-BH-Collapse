@@ -122,7 +122,7 @@ subroutine flux(a, b, x_surf, out, Bout, idx)
     
     real(RK) :: ul, ur, FL, FR
     real(RK), parameter :: PI=4._RK*DATAN(1._RK)
-    
+
     ul = a / x_surf**2_RK
     ur = b / x_surf**2_RK
     FL = 0.5_RK * x_surf**3 * sin(ul)**2 

@@ -165,16 +165,15 @@ program LQGeq
 !$OMP END SECTIONS
 
         if ( saveO .or. printO ) then
-            call compRho(NX, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), u_p(NX+1:2*NX), xs, rho)
-            ! call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, e_der, rho)
+            call compRho(NX, h, dt, u(1:NX), u_p(1:NX), u(NX+1:2*NX), xs, e_der, rho)
         end if
 
         ! TERMINAL OUTPUT
         if ( printO ) then
             ! COMPUTE MASS
-!$OMP SINGLE
+!$OMP MASTER
             ssum = 0.5_RK * (rho(2) * xs(2)**2 + rho(NX-1) * xs(NX-1)**2)
-!$OMP END SINGLE
+!$OMP END MASTER
 !$OMP DO PRIVATE(i) REDUCTION(+:ssum)
             do i = 3, NX-2
                 ssum = ssum + rho(i) * xs(i)**2
@@ -201,10 +200,6 @@ program LQGeq
             call saveOutput(ufiles(4), size(ttt), ttt)
 !$OMP END SECTIONS NOWAIT
 
-            ! write(*, "(A65)") "-----------------------------------------------------------------"
-            ! write(*, "(A33, 1X, F9.4)") "Output saved at simulation time", t
-            ! write(*, "(A65)") "-----------------------------------------------------------------"
-
         end if
 
 !$OMP MASTER
@@ -213,11 +208,11 @@ program LQGeq
 
         ! Update previous step
         if ( .not.done ) then
-!$OMP DO PRIVATE(i)
+!$OMP DO SIMD PRIVATE(i)
             do i = 1, 2*NX
                 u_p(i) = u(i)
             end do
-!$OMP END DO
+!$OMP END DO SIMD 
         end if
 
     

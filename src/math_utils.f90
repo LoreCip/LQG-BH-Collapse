@@ -46,41 +46,6 @@ function interpolant(NX, i, x_pt, u, x, dx) result(retval)
     return
 end function interpolant
 
-! subroutine compRho(NX, dt, B, BP, E, EP, x, out)
-
-!     use iso_fortran_env, only: RK => real64
-!     implicit none
-
-!     integer,                 intent(in)  :: NX
-!     real(RK),                intent(in)  :: dt
-!     real(RK), dimension(NX), intent(in)  :: B, BP, E, EP, x
-!     real(RK), dimension(NX), intent(out) :: out
-
-!     integer :: i
-    
-!     real(RK), parameter :: PI=4._RK*DATAN(1._RK)
-
-! !$OMP DO SCHEDULE(STATIC) PRIVATE(i)
-!     do i = 3, NX
-
-!         if (i.eq.NX) then
-!             out(NX) = 0
-!             cycle
-!         else
-!             out(i) = - ( B(i) - BP(i) - (E(i) - EP(i)) / sin(2_RK*B(i)/x(i)**2) ) / (4_RK*PI*dt*x(i)**2)
-!         end if
-
-!         if (i.eq.3) then
-!             out(2) = out(3)
-!             out(1) = out(2)
-!         end if
-        
-!     end do
-! !$OMP END DO
-    
-!     return
-! end subroutine compRho
-
 subroutine compRho(NX, dx, dt, B, BP, E, x, e_der, out)
 
     use iso_fortran_env, only: RK => real64

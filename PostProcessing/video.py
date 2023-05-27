@@ -53,8 +53,13 @@ def ProduceInputs(ppath, times, last_line, pline):
         B = np.loadtxt(ppath + '/outputs/B.dat', skiprows = last_line, max_rows = pline)
         eps = np.loadtxt(ppath + '/outputs/E.dat', skiprows = last_line, max_rows = pline)
         rho = np.loadtxt(ppath + '/outputs/rho.dat', skiprows = last_line, max_rows = pline)
-
-    return [(last_line + i, X, B[i,:], eps[i,:], rho[i,:], times[last_line+i, 0]) for i in range(pline)]
+    
+    if len(times) == 1:
+        out = [(last_line + 1, X, B[:], eps[:], rho[:], times[0])]
+    else:
+        out = [(last_line + i, X, B[i,:], eps[i,:], rho[i,:], times[i, 0]) for i in range(len(times))]
+        
+    return out
 
 def GenerateVideo(ppath, n_partitions):
 
