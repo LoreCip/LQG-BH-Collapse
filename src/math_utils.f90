@@ -61,11 +61,11 @@ subroutine compRho(NX, dx, dt, B, BP, E, x, e_der, out)
     
     real(RK), parameter :: PI=4._RK*DATAN(1._RK)
 
-!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
+!$OMP DO SIMD SCHEDULE(STATIC) PRIVATE(i)
     do i = 3, NX-2
         e_der(i) = ( E(i-2) - 8*E(i-1) + 8*E(i+1) - E(i+2) ) / (12_RK * dx) 
     end do
-!$OMP END DO NOWAIT
+!$OMP END DO SIMD NOWAIT 
 
 !$OMP SINGLE
     e_der(2) = ( -25_RK*E(2) + 48_RK*E(3) - 36_RK*E(4) + 16_RK*E(5) - 3_RK*E(6) ) / (12_RK * dx) 
@@ -74,11 +74,11 @@ subroutine compRho(NX, dx, dt, B, BP, E, x, e_der, out)
     e_der(NX) = e_der(NX-1)
 !$OMP END SINGLE
 
-!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
+!$OMP DO SIMD SCHEDULE(STATIC) PRIVATE(i)
     do i = 2, NX-1
         out(i) = - ( (B(i) - BP(i))/dt + x(i) * e_der(i) / 2_RK ) / (4_RK*PI*x(i)**2)
     end do
-!$OMP END DO
+!$OMP END DO SIMD
 !$OMP SINGLE
     out(1)  = out(2)
     out(NX) = 0
@@ -98,11 +98,11 @@ subroutine CompExpansion(NX, B, E, x, theta)
 
     integer :: i
     
-!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
+!$OMP DO SIMD SCHEDULE(STATIC) PRIVATE(i)
     do i = 1, NX
         theta(i) = 1_RK - x(i)**2 * sin(2_RK * B(i) / x(i)**2)**2 / ( 4_RK * (1_RK + E(i)) )
     end do
-!$OMP END DO
+!$OMP END DO SIMD
 
     return
 end subroutine CompExpansion

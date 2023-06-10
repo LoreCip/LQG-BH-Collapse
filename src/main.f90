@@ -1,5 +1,6 @@
 program LQGeq
     
+    use hdf5
     use iso_fortran_env, only: RK => real64
     use OMP_LIB
     implicit none
@@ -8,6 +9,7 @@ program LQGeq
     integer  :: iTimes1, iTimes2, rate
 
     integer :: error_code
+    integer(hid_t) :: file_id
     integer, dimension(4) :: ufiles
 
     ! Physical parameters
@@ -109,15 +111,8 @@ program LQGeq
     end do
     if (N_save .gt. 0) then
 
-        ufiles = (/ 100, 101, 102, 103/)
-
-        fpath = trim(args(2)) // '/xs.dat'
-        open(unit=99, file=fpath, status='new', POSITION='append')
-        write(99, *) "# X grid"
-        call saveOutput(99, NX-2, xs(2:NX-1))
-        close(99)
-        
-        call openOutput(size(ufiles), ufiles, trim(args(2)))
+        fpath = trim(args(2)) // '/output.h5'
+        call create_hdf5_file(fpath, NX-2, xs(2:NX-1), m, h, file_id)
 
     end if
 
@@ -188,17 +183,9 @@ program LQGeq
 
         if ( saveO ) then
 
-!$OMP SECTIONS
-    !$OMP SECTION
-            call saveOutput(ufiles(1), NX-2, u(2:NX-1))
-    !$OMP SECTION
-            call saveOutput(ufiles(2), NX-2, u(NX+2:2*NX-1))
-    !$OMP SECTION
-            call saveOutput(ufiles(3), NX-2, rho(2:NX-1))
-    !$OMP SECTION
-            ttt = (/t, dt, logic2dbl(BHpresent) /)
-            call saveOutput(ufiles(4), size(ttt), ttt)
-!$OMP END SECTIONS NOWAIT
+!$OMP SINGLE
+            call write_arrays_to_hdf5(file_id, NX-2, u(2:NX-1), u(NX+2:2*NX-1), rho(2:NX-1), t, dt, counter)
+!$OMP END SINGLE NOWAIT
 
         end if
 
@@ -220,17 +207,9 @@ program LQGeq
 !$OMP END PARALLEL
 
     deallocate(xs, e_der, vel, u, u_p, u1, u2, u12, u32, f_prime, rho, theta)
-    call closeOutput(size(ufiles), ufiles)
     
     if (N_save .gt. 0) then
-        allocate(vvv(4))
-        fpath = trim(args(2)) // '/details.dat'
-        vvv = (/ m, h, Tformation, Texplosion /)
-        open(unit=104, file=fpath, status='new', POSITION='append')
-        write(104, *) "# Mass dx BH_formation_time BH_explosion_time"
-        call saveOutput(104, size(vvv), vvv)
-        close(104)
-        deallocate(vvv)
+        call close_hdf5_file(file_id)
     end if
 
     write(*, "(A65)") "-----------------------------------------------------------------"

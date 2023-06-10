@@ -15,8 +15,6 @@ from p_tqdm import p_map
 # 3) input name of out_video
 # 4) option to keep frames
 
-
-
 def plotting(inputs):
 
         i, X, B, eps, rho, t = inputs 

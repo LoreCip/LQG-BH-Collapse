@@ -1,4 +1,4 @@
-FCOMP = gfortran
+FCOMP ?= h5fc
 
 FC = -c
 FFLAGS = -Wall -Wextra -Wconversion -Wno-maybe-uninitialized -pedantic -ffree-line-length-none
