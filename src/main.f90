@@ -1,8 +1,8 @@
 program LQGeq
 
-    #ifdef HDF
+#ifdef HDF
         use hdf5
-    #endif
+#endif
     
         use iso_fortran_env, only: RK => real64
         use OMP_LIB
@@ -12,9 +12,9 @@ program LQGeq
         integer  :: iTimes1, iTimes2, rate
     
         integer :: error_code
-    #ifdef HDF
+#ifdef HDF
         integer(hid_t) :: file_id
-    #endif
+#endif
         integer, dimension(4) :: ufiles
     
         ! Physical parameters
@@ -116,10 +116,10 @@ program LQGeq
         end do
         if (N_save .gt. 0) then
     
-    #ifdef HDF
+#ifdef HDF
             fpath = trim(args(2)) // '/output.h5'
             call create_hdf5_file(fpath, NX-2, xs(2:NX-1), m, h, file_id)
-    #else
+#else
             ufiles = (/ 100, 101, 102, 103/)
     
             fpath = trim(args(2)) // '/xs.dat'
@@ -129,7 +129,7 @@ program LQGeq
             close(99)
     
             call openOutput(size(ufiles), ufiles, trim(args(2)))
-    #endif
+#endif
     
         end if
     
@@ -200,11 +200,11 @@ program LQGeq
     
             if ( saveO ) then
     
-    #ifdef HDF
+#ifdef HDF
     !$OMP SINGLE
                 call write_arrays_to_hdf5(file_id, NX-2, u(2:NX-1), u(NX+2:2*NX-1), rho(2:NX-1), t, dt, counter)
     !$OMP END SINGLE NOWAIT
-    #else
+#else
     !$OMP SECTIONS
         !$OMP SECTION
                 call saveOutput(ufiles(1), NX-2, u(2:NX-1))
@@ -216,7 +216,7 @@ program LQGeq
                 ttt = (/t, dt, logic2dbl(BHpresent) /)
                 call saveOutput(ufiles(4), size(ttt), ttt)
     !$OMP END SECTIONS NOWAIT
-    #endif
+#endif
     
             end if
     
@@ -241,9 +241,9 @@ program LQGeq
         
         if (N_save .gt. 0) then
     
-    #ifdef HDF
+#ifdef HDF
             call close_hdf5_file(file_id)
-    #else
+#else
         call closeOutput(size(ufiles), ufiles)
     
         allocate(vvv(4))
@@ -255,7 +255,7 @@ program LQGeq
         close(104)
         deallocate(vvv)
     
-    #endif
+#endif
     
         end if
     
@@ -267,4 +267,4 @@ program LQGeq
         systemtime = real(iTimes2-iTimes1)/real(rate)
         write(*, "(A21,1x, F10.2, A9)") "Total system runtime:", systemtime, " seconds."
     
-    end program LQGeq
+end program LQGeq
