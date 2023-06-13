@@ -24,7 +24,7 @@ else
         NAME=$1
     fi
 
-    if [ ! -z "$2" ]
+    if [ ! -z "$3" ]
     then
         echo "Specify only the name of the build!"
     else
@@ -38,7 +38,7 @@ else
 
         cd $NAME
 
-        make
+        make  ## NOHDF5=1
 
         echo "All done!"
     fi
