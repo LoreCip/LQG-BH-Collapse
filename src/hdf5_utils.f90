@@ -11,7 +11,7 @@ subroutine create_hdf5_file(file_name, NX, Xgrid, m, dx, file_id)
   character(len=*), intent(in)  :: file_name
   integer(hid_t)  , intent(out) :: file_id
   
-  integer(hid_t) :: dataspace_id, group_id, dataset_id, plist_id
+  integer(hid_t) :: dataspace_id, dataset_id, plist_id
   integer(C_INT) :: rank
   integer(8) :: dims(1)
   integer(hsize_t) :: cdims(1)

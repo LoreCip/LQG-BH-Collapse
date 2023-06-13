@@ -117,6 +117,68 @@ subroutine paramChecker(inputs, error_code, error_string)
     return
 end subroutine paramChecker
 
+subroutine openOutput(d, ufiles, path)
+
+    implicit none
+
+    integer,               intent(in) :: d
+    integer, dimension(d), intent(in) :: ufiles
+    character(len=*),      intent(in) :: path
+
+    character(len=4096)              :: fpath
+    character(len=4096), dimension(4) :: string_array, header
+
+    integer :: i
+
+    ! Assign values to string array
+    string_array(1) = '/B.dat'
+    string_array(2) = '/E.dat'
+    string_array(3) = '/rho.dat'
+    string_array(4) = '/times.dat'
+
+    header(1) = "# B field"
+    header(2) = "# Spatial curvature eps^b field"
+    header(3) = "# Density field"
+    header(4) = "# Time dt BH_present"
+
+    do i = 1, d
+        fpath = path // string_array(i)
+        open(unit=ufiles(i), file=fpath, status='new', POSITION='append')
+        write(ufiles(i), *) trim(header(i))
+    end do
+    
+end subroutine openOutput
+
+subroutine saveOutput(ufile, d, var)
+    
+    use iso_fortran_env, only: RK => real64
+    implicit none
+
+    integer ,               intent(in) :: ufile, d
+    real(RK), dimension(d), intent(in) :: var
+
+    integer :: i
+
+    write(ufile, *) (var(i), i = 1, d)
+
+    return
+end subroutine saveOutput
+
+subroutine closeOutput(d, ufiles)
+
+    implicit none
+
+    integer,               intent(in) :: d
+    integer, dimension(d), intent(in) :: ufiles
+
+    integer :: i
+    
+    do i = 1, d
+        close(ufiles(i))
+    end do
+    
+end subroutine closeOutput
+
 double precision function logic2dbl(a)
     
     use iso_fortran_env, only: RK => real64
