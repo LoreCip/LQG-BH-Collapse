@@ -14,7 +14,7 @@ subroutine create_hdf5_file(file_name, NX, Xgrid, m, dx, file_id)
   integer(hid_t) :: dataspace_id, group_id, dataset_id, plist_id
   integer(C_INT) :: rank
   integer(8) :: dims(1)
-  integer(hsize_t) :: cdims(1) = [int(NX/2)]
+  integer(hsize_t) :: cdims(1)
   integer :: status
   character(len=500) :: dataset_name
 
@@ -34,6 +34,7 @@ subroutine create_hdf5_file(file_name, NX, Xgrid, m, dx, file_id)
 
   dims = shape(Xgrid)
   rank = size(dims)
+  cdims(1) = int(NX/2)
 
   call h5screate_simple_f(rank, dims, dataspace_id, status)
 
@@ -108,7 +109,7 @@ subroutine write_arrays_to_hdf5(file_id, NX, B, E, rho, t, dt, iteration)
   integer(C_INT) :: rank, status
   integer(8) :: dims(1)
   character(len=100) :: group_name, dataset_name
-  integer(hsize_t) :: cdims(1) = [int(NX/2)]
+  integer(hsize_t) :: cdims(1)
 
   write(group_name, "(I0)") iteration
   call h5gcreate_f(file_id, trim(group_name), group_id, status)
@@ -117,6 +118,7 @@ subroutine write_arrays_to_hdf5(file_id, NX, B, E, rho, t, dt, iteration)
 
   dims = shape(B)
   rank = size(dims)
+  cdims(1) = int(NX/2)
 
   call h5screate_simple_f(rank, dims, dataspace_id, status)
 
