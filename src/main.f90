@@ -14,8 +14,11 @@ program LQGeq
         integer :: error_code
 #ifdef HDF
         integer(hid_t) :: file_id
+#else
+        real(RK) :: logic2dbl
+        real(RK), dimension(:) :: vvv(4), ttt(3)
+        integer, dimension(4)  :: ufiles
 #endif
-        integer, dimension(4) :: ufiles
     
         ! Physical parameters
         integer, parameter  :: nghost = 1 ! Number of ghost cells
@@ -39,16 +42,13 @@ program LQGeq
                         vel,     &
                         e_der,   &
                         rho,     &   ! Density profile
-                        theta,   &   ! Expansion  
-                        vvv
+                        theta        ! Expansion  
+                        
         ! Computational parameters
         real(RK) :: xM,      &   ! Outer boundary of the grid
                     h,       &   ! Grid spacing
-                    ssum,    &
-                    logic2dbl
-    
-        real(RK), dimension(3) :: ttt
-    
+                    ssum
+                    
         integer  :: r,       &   ! Order of the WENO method
                     NX,      &   ! Number of points in xs
                     N_output,&   ! Print output every
@@ -244,17 +244,14 @@ program LQGeq
 #ifdef HDF
             call close_hdf5_file(file_id)
 #else
-        call closeOutput(size(ufiles), ufiles)
-    
-        allocate(vvv(4))
-        fpath = trim(args(2)) // '/details.dat'
-        vvv = (/ m, h, Tformation, Texplosion /)
-        open(unit=104, file=fpath, status='new', POSITION='append')
-        write(104, *) "# Mass dx BH_formation_time BH_explosion_time"
-        call saveOutput(104, size(vvv), vvv)
-        close(104)
-        deallocate(vvv)
-    
+            call closeOutput(size(ufiles), ufiles)
+
+            fpath = trim(args(2)) // '/details.dat'
+            vvv = (/ m, h, Tformation, Texplosion /)
+            open(unit=104, file=fpath, status='new', POSITION='append')
+            write(104, *) "# Mass dx BH_formation_time BH_explosion_time"
+            call saveOutput(104, size(vvv), vvv)
+            close(104)    
 #endif
     
         end if
