@@ -1,5 +1,10 @@
+import sys
 import os
 import warnings
+
+import h5py
+
+import getopt
 from pathlib import Path
 
 import numpy as np
@@ -43,19 +48,33 @@ def plotting(inputs):
         plt.savefig(f'./.frames/frame{i:07d}.png')
         plt.close()
 
-def ProduceInputs(ppath, times, last_line, pline):
+def count_h5_groups(file_path):
+    count = 0
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore",category=UserWarning)
-        times = np.loadtxt(ppath + '/outputs/times.dat', skiprows = last_line, max_rows = pline)
-        B = np.loadtxt(ppath + '/outputs/B.dat', skiprows = last_line, max_rows = pline)
-        eps = np.loadtxt(ppath + '/outputs/E.dat', skiprows = last_line, max_rows = pline)
-        rho = np.loadtxt(ppath + '/outputs/rho.dat', skiprows = last_line, max_rows = pline)
-    
-    if len(times) == 1:
-        out = [(last_line + 1, X, B[:], eps[:], rho[:], times[0])]
-    else:
-        out = [(last_line + i, X, B[i,:], eps[i,:], rho[i,:], times[i, 0]) for i in range(len(times))]
+    with h5py.File(file_path, 'r') as f:
+        # Recursive function to traverse the HDF5 file structure
+        def traverse_groups(group):
+            nonlocal count
+            count += 1  # Increment count for each group encountered
+
+            for key in group.keys():
+                if isinstance(group[key], h5py.Group):
+                    traverse_groups(group[key])  # Recursively visit subgroups
+
+        # Start traversing from the root group
+        traverse_groups(f)
+
+    return count
+
+def ProduceInputs(ppath, names, last_line, pline):
+
+    with h5py.File(ppath+'/outputs/output.h5', 'r') as f:
+        X = f['Xgrid'][()]
+
+        if len(names) == 1:
+            out = [(last_line + 1, X, f[str(names[0])]['B'][()], f[str(names[0])]['e^b'][()], f[str(names[0])]['rho'][()], f[str(names[0])]['t'][()])]
+        else:
+            out = [(last_line + i, X, f[str(names[i])]['B'][()], f[str(names[i])]['e^b'][()], f[str(names[i])]['rho'][()], f[str(names[i])]['t'][()]) for i in range(len(names))]
         
     return out
 
@@ -68,14 +87,24 @@ def GenerateVideo(ppath, n_partitions):
 
     print('Creating frames.')
     
-    times = np.loadtxt(ppath + '/outputs/times.dat')
-    n_lines = len(times[:,0])
-
     last_line = 0
-    p_line = int(n_lines / n_partitions)
+    p_line = int( count_h5_groups(ppath+'/outputs/output.h5') / n_partitions)
+
+    with h5py.File(ppath+'/outputs/output.h5', 'r') as f:
+        group_names = list(f.keys())
+        rl = []
+        for i in range(len(group_names)):
+            try:
+                int(group_names[i])  # Try converting the element to an integer
+            except ValueError:
+                rl.append(i)  # Remove the element if it cannot be converted
+        for r in rl[::-1]:
+            group_names.pop(r)
+
+    group_names = sorted(group_names, key=int)
 
     for j in range(n_partitions):
-        inputs = ProduceInputs(ppath, times, last_line, p_line)
+        inputs = ProduceInputs(ppath, group_names[last_line:last_line+p_line], last_line, p_line)
         p_map(plotting, inputs)
         last_line += p_line
 
