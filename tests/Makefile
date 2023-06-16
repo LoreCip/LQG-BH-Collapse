@@ -11,7 +11,7 @@ MODULES_DIR = modules
 
 # Source files
 SRC_FILES = $(wildcard $(SRC_DIR)/*.f90)
-TEST_FILES = $(wildcard *.f90)
+TEST_FILES = asserts.f90 $(filter-out asserts.f90, $(wildcard *.f90))
 
 # Object files
 SRC_OBJ_FILES = $(filter-out $(OBJECTS_DIR)/main.o, $(patsubst $(SRC_DIR)/%.f90, $(OBJECTS_DIR)/%.o, $(SRC_FILES)) )
