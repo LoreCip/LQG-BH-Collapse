@@ -74,6 +74,7 @@ subroutine paramChecker(inputs, error_code, error_string)
     integer, dimension(4) :: valid_ids
     
     error_code = 0
+    error_string = ""
 
     ! Physical conditions
     ! Check for:
@@ -86,7 +87,7 @@ subroutine paramChecker(inputs, error_code, error_string)
 
     ! xmax < 2 * m * a0^2 / r0^2
     tmp = 2_RK * inputs(5) * inputs(4)**2 / inputs(3)**2
-    if (tmp.lt.inputs(6)) then
+    if (tmp.lt.inputs(7)) then
         error_code = 2
         error_string = "Furthest grid point xM must be smaller than 2 * m * a0^2 / r0^2."
         return
@@ -95,7 +96,7 @@ subroutine paramChecker(inputs, error_code, error_string)
     ! Sanity checks:
     if ( any(inputs.lt.0) ) then
         error_code = 3
-        error_string = "All paramteres must be non negative."
+        error_string = "All parameters must be non negative."
         return
     end if
         
@@ -110,7 +111,7 @@ subroutine paramChecker(inputs, error_code, error_string)
     ! r = 2
     if (int(inputs(6)).ne.2) then
         error_code = 5
-        error_string = "Only WENO3 (r=2) is implemtented."
+        error_string = "Only WENO3 (r=2) is implemented."
         return
     end if
 
