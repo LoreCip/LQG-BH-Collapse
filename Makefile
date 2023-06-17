@@ -6,6 +6,8 @@ FOMP = -fopenmp
 
 EXECUTABLE = run
 
+OBJECTS_DIR = src/objects
+
 F90_FILES := $(wildcard src/*.f90)
 SPECIFIC_SOURCE := src/hdf5_utils.f90
 
@@ -17,13 +19,15 @@ else
 	FCOMP ?= h5fc
 endif
 
-OBJECTS := $(patsubst   src/%.f90, src/%.o, $(F90_FILES))
+OBJECTS := $(patsubst   src/%.f90, $(OBJECTS_DIR)/%.o, $(F90_FILES))
 
 $(EXECUTABLE): $(OBJECTS)
 		$(FCOMP) -cpp $(CCF) $(FFLAGS) $(FOMP) $(FOPT) $^ -o $@
 
-%.o : %.f90
+$(OBJECTS_DIR)/%.o : src/%.f90
+		@mkdir -p $(OBJECTS_DIR)
 		$(FCOMP) -cpp $(CCF) $(FC) $(FFLAGS) $(FOPT) $(FOMP) $< -o $@
 
 clean:
-		rm -rf src/*.o $(EXECUTABLE)
+		rm -rf $(OBJECTS_DIR) 
+		rm -rf $(EXECUTABLE)

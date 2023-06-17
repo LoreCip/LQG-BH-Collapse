@@ -22,6 +22,8 @@ contains
         do i = 1, size(expected)
             if (abs(expected(i) - actual(i)) > tol) then
                 write(*, '(A)') "Assertion failed: Array elements differ beyond tolerance!"
+                write(*, '(A)') "Expected: ", expected(i), "   Actual : ", actual(i)
+                write(*, '(A)') "At index ", i
                 if (present(message)) write(*, '(A)') "Additional Info: ", trim(message)
                 stop 1
             endif

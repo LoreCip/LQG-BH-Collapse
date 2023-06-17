@@ -5,7 +5,7 @@ program PerformTests
 
     real(RK) :: T
 
-    integer, parameter  :: Ntot = 5
+    integer, parameter  :: Ntot = 3
     write(*, "(A23)") "Running all unit tests:"
 
     call STARToutput(1)
