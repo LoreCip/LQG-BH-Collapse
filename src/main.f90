@@ -47,7 +47,8 @@ program LQGeq
         ! Computational parameters
         real(RK) :: xM,      &   ! Outer boundary of the grid
                     h,       &   ! Grid spacing
-                    ssum
+                    ssum,    &
+                    betamin
                     
         integer  :: r,       &   ! Order of the WENO method
                     NX,      &   ! Number of points in xs
@@ -158,7 +159,7 @@ program LQGeq
     !$OMP END SINGLE NOWAIT
             
             ! Perform time step
-            call TVD_RK(NX, u_p,  u1, u2, u12, u32, f_prime, xs, h, dt, nghost, u)
+            call TVD_RK(m, NX, u_p,  u1, u2, u12, u32, f_prime, xs, h, dt, nghost, u, e_der, rho, betamin)
             call CompExpansion(NX, u(1:NX), u(NX+1:2*NX), xs, theta)
     
     !$OMP SECTIONS
