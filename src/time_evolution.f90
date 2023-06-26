@@ -79,8 +79,8 @@ subroutine RK_STEP(NX, u, f_prime, x, dx, dt, nghost, u_step)
     real(RK), dimension(2*NX), intent(in) :: u
     real(RK), dimension(2*NX), intent(out):: u_step
     
-    integer :: i, idx
-    real(RK) :: L, Bp, Bm, e_k, e_l, vb, betamin
+    integer :: i
+    real(RK) :: L, Bp, Bm, e_k, e_l, vb
     real(RK), parameter :: PI=4._RK*DATAN(1._RK)
 
 !$OMP DO SIMD SCHEDULE(STATIC) PRIVATE(i)
