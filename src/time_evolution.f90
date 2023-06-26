@@ -42,7 +42,7 @@ subroutine TVD_RK(m, NX, u_p, u1, u2, u12, u32, f_prime, x, dx, dt, nghost, uf, 
 !$OMP DO SIMD SCHEDULE(STATIC) PRIVATE(i) REDUCTION(MIN:betamin)
     do i = 1, 2*NX
         uf(i) = u_p(i)/3_RK + 2_RK*u32(i)/3_RK
-        if (x(i).gt.(2_RK*m)**(1._RK/3._RK)) then
+        if ((i.le.NX).and.(x(i).gt.(2_RK*m)**(1._RK/3._RK))) then
             betamin = min(betamin, uf(i) / x(i)**2)
         end if    
     end do
