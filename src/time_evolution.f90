@@ -8,12 +8,15 @@ subroutine TVD_RK(m, NX, u_p, u1, u2, u12, u32, f_prime, x, dx, dt, nghost, uf, 
     real(RK)               , intent(in) :: dx, dt, m
     real(RK)               , intent(inout)   :: betamin
     real(RK), dimension(NX), intent(in)      :: x
+    real(RK), dimension(NX), intent(inout)   :: f_prime, e_der, rho
     real(RK), dimension(2*NX), intent(in)    :: u_p
-    real(RK), dimension(2*NX), intent(inout) :: u1, u2, u12, u32, f_prime, e_der, rho
+    real(RK), dimension(2*NX), intent(inout) :: u1, u2, u12, u32
     real(RK), dimension(2*NX), intent(inout) :: uf
 
     integer :: i, idx
     real(RK), parameter :: PI=4._RK*DATAN(1._RK)
+
+    logical, parameter :: correction = .true.
 
     ! 1**) t      --> t +   dt
     call RK_STEP(NX, u_p, f_prime, x, dx, dt, nghost, u1)
@@ -35,9 +38,9 @@ subroutine TVD_RK(m, NX, u_p, u1, u2, u12, u32, f_prime, x, dx, dt, nghost, uf, 
     ! 4**) t + dt/2 -- > t + 3*dt/2
     call RK_STEP(NX, u12, f_prime, x, dx, dt, nghost, u32)
 
-!$OMP MASTER
+!$OMP SINGLE
     betamin = 1.0E20
-!$OMP END MASTER
+!$OMP END SINGLE
     ! 5**) t + dt
 !$OMP DO SIMD SCHEDULE(STATIC) PRIVATE(i) REDUCTION(MIN:betamin)
     do i = 1, 2*NX
@@ -52,15 +55,17 @@ subroutine TVD_RK(m, NX, u_p, u1, u2, u12, u32, f_prime, x, dx, dt, nghost, uf, 
     call BC(NX, uf)
 !$OMP END SINGLE
 
-    if (betamin.lt.-PI/2_RK) then
-        call compRho(NX, dx, dt, uf(1:NX), u_p(1:NX), uf(NX+1:2*NX), x, e_der, rho)
+    if (correction) then
+        if (betamin.lt.-PI/2_RK) then
+            call compRho(NX, dx, dt, uf(1:NX), u_p(1:NX), uf(NX+1:2*NX), x, e_der, rho)
 !$OMP SINGLE
-        idx = maxloc(rho, DIM=1, mask=(x>(2_RK*m)**(1._RK/3._RK))) - 1
-        if (x(idx+1).gt.(2_RK*m)**(1._RK/3._RK)) then
-            ! Try moving one point
-            uf(NX+idx) = uf(NX+idx-1)
-        end if
+            idx = maxloc(rho, DIM=1, mask=(x>(2_RK*m)**(1._RK/3._RK))) - 1
+            if (x(idx+1).gt.(2_RK*m)**(1._RK/3._RK)) then
+                ! Try moving one point
+                uf(NX+idx) = uf(NX+idx-1)
+            end if
 !$OMP END SINGLE
+        end if
     end if
 
     return
