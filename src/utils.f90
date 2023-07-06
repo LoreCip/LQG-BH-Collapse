@@ -71,7 +71,7 @@ subroutine paramChecker(inputs, error_code, error_string)
     character(1024)        , intent(out) :: error_string
 
     real(RK) :: tmp
-    integer, dimension(4) :: valid_ids
+    integer, dimension(5) :: valid_ids
     
     error_code = 0
     error_string = ""
@@ -87,7 +87,7 @@ subroutine paramChecker(inputs, error_code, error_string)
 
     ! xmax < 2 * m * a0^2 / r0^2
     tmp = 2_RK * inputs(5) * inputs(4)**2 / inputs(3)**2
-    if (tmp.lt.inputs(7)) then
+    if ( (inputs(1).ne.4) .and. (tmp.lt.inputs(7)) ) then
         error_code = 2
         error_string = "Furthest grid point xM must be smaller than 2 * m * a0^2 / r0^2."
         return
@@ -100,8 +100,8 @@ subroutine paramChecker(inputs, error_code, error_string)
         return
     end if
         
-    ! id = 0,1,2,3
-    valid_ids = (/ 0, 1, 2, 3 /)
+    ! id = 0,1,2,3,4
+    valid_ids = (/ 0, 1, 2, 3, 4 /)
     if ( .not.any(int(inputs(1)) == valid_ids) ) then
         error_code = 4
         error_string = "Initial data index not valid. id = 0,1,2,3"
