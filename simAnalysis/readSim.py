@@ -73,22 +73,82 @@ class Sim():
             return item[()]
 
     def get(self, iteration, item):
-
-        if not isinstance(iteration, int):
+        if isinstance(iteration, slice):
+            start = iteration.start or 0
+            stop = iteration.stop or self.niter
+            step = iteration.step or 1
+            indices = range(start, stop, step)
+        elif isinstance(iteration, int):
+            indices = [iteration]
+        else:
             try:
                 iteration = int(iteration)
+                indices = [iteration]
             except ValueError:
-                raise ValueError("Invalid iteration value: {} - It should be an integer or convertible to one.".format(iteration))
+                raise ValueError("Invalid iteration value: {} - It should be an integer or convertible to one.")
 
-        if iteration >= self.niter: 
-            raise IndexError("Invalid index: {} - Array length: {}".format(iteration, self.niter))
+        result = [self.__getitem__(self.iterations[i])[item] for i in indices]
+
+        if len(result) == 1:
+            return result[0]
+        return result
+
+
+    # def get(self, iteration, item):
+
+    #     if not isinstance(iteration, int):
+    #         try:
+    #             iteration = int(iteration)
+    #         except ValueError:
+    #             raise ValueError("Invalid iteration value: {} - It should be an integer or convertible to one.".format(iteration))
+
+    #     if iteration >= self.niter: 
+    #         raise IndexError("Invalid index: {} - Array length: {}".format(iteration, self.niter))
+    #     if item not in self.valid_keys:
+    #         raise IndexError("Invalid key: {} - Accepted keys: {}".format(item, self.valid_keys))
+        
+    #     return self.__getitem__(self.iterations[iteration])[item]
+
+    def get_at_time(self, time, item, find_closest = True):
+        
+        if not isinstance(time, float):
+            time = float(time)
+        if time > self.simtime:
+            raise ValueError("Requested time: {} - Maximum time available {}".format(time, self.simtime))
         if item not in self.valid_keys:
             raise IndexError("Invalid key: {} - Accepted keys: {}".format(item, self.valid_keys))
-        
-        return self.__getitem__(self.iterations[iteration])[item]
 
-    def get_at_time(self, time):
-        pass    
+        # Max iteration possible if all timesteps where done with the largest timestep possible dt = dx/100
+        max_iter = str(int(100 * time / self['dx']))
+        # Find its index and add some iterations for safety
+        try:
+            idx = self.iterations.index(max_iter) + 20
+        except ValueError as e:
+            if not find_closest:
+                raise e
+            else:
+                closest_idx = str(min(self.iterations, key=lambda x: abs(int(x) - int(max_iter))))
+                idx = self.iterations.index(str(int(closest_idx))) + 20
+
+        # Check distance from wanted time
+        dt = np.abs(time - self.get(idx, 't')) 
+
+        # Going backwards
+        for i in range(idx-1, 0, -1):
+            # Find new time
+            t = self.get(i, 't')
+            # Check its disntace from wanted time
+            dt_tmp = np.abs(time - t)
+            # If it is getting closer save it
+            if dt_tmp < dt:
+                dt = dt_tmp
+            # If it is going further stop the cycle
+            elif dt_tmp > dt:
+                i = i + 1
+                break
+
+        return self.__getitem__(self.iterations[i])[item]
+
 
     def check(self, _path):
         if not os.path.isdir(_path):
@@ -122,7 +182,6 @@ class Sim():
             group_names.pop(r)
 
         return sorted(group_names, key=int)
-
 
     def find_timeout(self):
 
