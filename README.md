@@ -57,6 +57,27 @@ To run the code there are two optional arguments to be given:
 ```
 If they are not given the standard paths will be used; they are `.` and `./output` respectively. Please note the code assumes the executable is run from inside the build folder; if executing it from elsewhere these two arguments become mandatory.
 
+## Test Suite
+
+The test suite includes a set of tests to verify the functionality and correctness of the project. To run the tests, follow the steps below:
+
+1. Open a terminal and navigate to the project's root directory.
+
+2. Change the current directory to the `tests` folder and compile using the command:
+```bash
+make tests
+```
+
+3. Run the test suite using the following command:
+```bash
+./tests
+```
+
+4. After running the tests, it is recommended to clean up the generated files by running the following command:
+```bash
+make clean
+```
+
 ## Description of the parameter file
 
 The parameter file contains the following information:
