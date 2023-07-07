@@ -10,7 +10,7 @@ $$
 \end{cases}
 $$
 
-for the following initial condition
+for various initial condition. The main focus is the Oppenheimer-Snyder collapse, in which they are
 
 $$
 \begin{cases}
@@ -28,8 +28,6 @@ $$
 1 & \text{ if } x \gt r_0 
 \end{cases}
 $$
-
-and $m = 5$, and fixing the ratio $\frac{r_0}{a_0} = 0.375$.
 
 ## How to install
 
@@ -57,11 +55,62 @@ To run the code there are two optional arguments to be given:
 ```bash
 ./run [path/to/parameter/file.dat] [path/to/output/folder]
 ```
-If they are not given the standard paths will be used. Please note the code assumes the executable is run from inside the build folder; if executing it from elsewhere these two arguments become mandatory.
+If they are not given the standard paths will be used; they are `.` and `./output` respectively. Please note the code assumes the executable is run from inside the build folder; if executing it from elsewhere these two arguments become mandatory.
 
-## Description of the algorithm
+## Description of the parameter file
 
-W.I.P.
+The parameter file contains the following information:
+
+- `ID`: Index representing the initial condition
+  - Explanation: Identifies the specific initial condition to be used in the simulation.
+      - ID = `0`, full dynamics for Oppenheimer-Snyder collapse
+      - ID = `1`, post bounce dynamics for Oppenheimer-Snyder collapse
+      - ID = `2`, post bounce dynamics with peaked initial density function
+      - ID = `3`, full dynamics starting from atan density profile
+      - ID = `4`, full dynamics in the $\epsilon^b = 0$ case
+  - Range of values: Any integer value between 0 and 4, inclusive.
+
+- `Total simulation time`: Total duration of the simulation
+  - Explanation: Specifies the length of time the simulation will run.
+  - Range of values: Any positive floating-point number.
+
+- `Characteristic radius, r0`: Characteristic radius used in the simulation
+  - Explanation: Determines the characteristic size of the system.
+  - Range of values: Any positive floating-point number.
+
+- `Scale factor, a0`: Scale factor used in the simulation
+  - Explanation: Determines the overall curvature of the system.
+  - Range of values: Any positive floating-point number.
+
+- `Mass`: Mass value used in the simulation
+  - Explanation: Specifies the mass of the system.
+  - Range of values: Any positive floating-point number.
+
+- `Order of WENO`: Order of the Weighted Essentially Non-Oscillatory (WENO) scheme
+  - Explanation: Determines the accuracy and stability of the numerical method.
+  - Range of values: Any positive floating-point number.
+
+- `Furthest grid point`: Furthest point on the computational grid
+  - Explanation: Specifies the farthest extent of the computational domain.
+  - Range of values: Any positive floating-point number.
+
+- `Grid spacing`: Spacing between grid points
+  - Explanation: Specifies the distance between neighboring grid points.
+  - Range of values: Any positive floating-point number.
+
+- `Save output every ## iterations`: Frequency of saving output
+  - Explanation: Determines how often the simulation results are saved.
+  - Range of values: Any non-negative integer value. Use `0` to disable saving.
+
+- `Print output every ## iterations`: Frequency of printing output
+  - Explanation: Specifies how often the simulation results are printed.
+  - Range of values: Any non-negative integer value. Use `0` to disable printing.
+
+- `Number of threads`: Number of threads for parallel processing
+  - Explanation: Determines the degree of parallelism in the simulation.
+  - Range of values: Any positive integer value.
+
+
 
 ## Sources
 
