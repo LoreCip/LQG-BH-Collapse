@@ -1,12 +1,16 @@
 import os
 import re
 from pathlib import Path
+
+import warnings
 import errno
 
 import h5py
 
 import numpy as np
 import scipy.signal as sg
+
+import matplotlib.pyplot as plt
 
 class Sims():
 
@@ -58,56 +62,57 @@ class Sim():
         self.dSave   = int(data[8])
         self.dOut    = int(data[9])
 
+        self.hor_loc = 2 * self.mass
+
         self.outfile = h5py.File(self.outpath, 'r')
         self.iterations = self.sort_groups()
         self.niter = len(self.iterations)
 
-        self.valid_keys = ['t', 'rho', 'e^b', 'B', 'dt']
+        self.xgrid = self.__getitem__('Xgrid')
+
+        self.valid_keys = ['t', 'rho', 'e^b', 'B', 'beta', 'dt']
         
+
+    def check(self, _path):
+        if not os.path.isdir(_path):
+            raise NotADirectoryError(errno.ENOTDIR, os.strerror(errno.ENOTDIR), _path)
+
+        if not os.path.isfile(os.path.join(_path, 'ParameterFile.par')):
+            raise FileNotFoundError(os.path.join(_path, 'ParameterFile.par'))
+
+        if not os.path.isfile(os.path.join(_path, 'outputs/output.h5')):
+            raise FileNotFoundError(os.path.join(_path, 'outputs/output.h5'))
+
 
     def __getitem__(self, key):
         item = self.outfile[key]
         if isinstance(item, h5py.Group):
-            return GroupWrapper(item)  # Wrap the group in a custom class
+            return GroupWrapper(item, self.xgrid)
         else:
             return item[()]
 
     def get(self, iteration, item):
-        if isinstance(iteration, slice):
+        if isinstance(iteration, int):
+            indices = [iteration]
+        elif isinstance(iteration, list) or isinstance(iteration, np.ndarray):
+            indices = iteration
+        elif isinstance(iteration, slice):
             start = iteration.start or 0
             stop = iteration.stop or self.niter
             step = iteration.step or 1
             indices = range(start, stop, step)
-        elif isinstance(iteration, int):
-            indices = [iteration]
         else:
             try:
                 iteration = int(iteration)
-                indices = [iteration]
             except ValueError:
                 raise ValueError("Invalid iteration value: {} - It should be an integer or convertible to one.")
+            indices = [iteration]
 
         result = [self.__getitem__(self.iterations[i])[item] for i in indices]
 
         if len(result) == 1:
             return result[0]
         return result
-
-
-    # def get(self, iteration, item):
-
-    #     if not isinstance(iteration, int):
-    #         try:
-    #             iteration = int(iteration)
-    #         except ValueError:
-    #             raise ValueError("Invalid iteration value: {} - It should be an integer or convertible to one.".format(iteration))
-
-    #     if iteration >= self.niter: 
-    #         raise IndexError("Invalid index: {} - Array length: {}".format(iteration, self.niter))
-    #     if item not in self.valid_keys:
-    #         raise IndexError("Invalid key: {} - Accepted keys: {}".format(item, self.valid_keys))
-        
-    #     return self.__getitem__(self.iterations[iteration])[item]
 
     def get_at_time(self, time, item, find_closest = True):
         
@@ -149,18 +154,6 @@ class Sim():
 
         return self.__getitem__(self.iterations[i])[item]
 
-
-    def check(self, _path):
-        if not os.path.isdir(_path):
-            raise NotADirectoryError(errno.ENOTDIR, os.strerror(errno.ENOTDIR), _path)
-
-        if not os.path.isfile(os.path.join(_path, 'ParameterFile.par')):
-            raise FileNotFoundError(os.path.join(_path, 'ParameterFile.par'))
-
-        if not os.path.isfile(os.path.join(_path, 'outputs/output.h5')):
-            raise FileNotFoundError(os.path.join(_path, 'outputs/output.h5'))
-
-
     def readParameters(self):
         comment_char = "/*"
         # Load the file using genfromtxt, ignoring comments
@@ -185,30 +178,28 @@ class Sim():
 
     def find_timeout(self):
 
-        hor_loc = 2 * self.mass
-        x_min = hor_loc**(1/3)
+        x_min = self.hor_loc**(1/3)
 
-        x = self['Xgrid']
+        x = self.xgrid
         lx = len(x)
-        x = x[:lx//2]
 
         for iter in range(self.niter-1, 0, -1):
             t = self.get(iter, 't')
             if t < 5:
                 continue
 
-            rho = self.get(iter, 'rho')[:lx//2]
+            rho = self.get(iter, 'rho')
 
             cond1 = x > x_min
             skipped = len(cond1) - sum(cond1)
-            cond2 = x < hor_loc*1.3
+            cond2 = x < self.hor_loc*1.3
             cond = cond1 & cond2
 
             rho = rho[cond]
             locmaxrho = self.find_peak(rho)
             locmaxrho += skipped
 
-            if x[locmaxrho] <= hor_loc:
+            if x[locmaxrho] <= self.hor_loc:
                 return t
 
         return np.NaN
@@ -217,9 +208,112 @@ class Sim():
         idx_MAX = sg.find_peaks(rho, height=[1e-2], distance=2)[0][::-1]
         return idx_MAX[0]
 
+    def plot(self, Y, X=None, iteration=None, time=None, color=None, linestyle=None, xrange=None, yrange=None, xlabel=None, ylabel=None, title=None, printTime=True, showHor=False, return_handles=False, savefig=False, name=None, savepath='.'):
+        
+        if iteration == None and time != None:
+            qtt = self.get_at_time(time, Y)
+            t = time
+        elif time == None and iteration != None:    
+            qtt = self.get(iteration, Y)
+            t = self.get(iteration, 't')
+        elif iteration == None and time == None:
+            raise ValueError("Both iteration and time are missing. Please provide either iteration or time.")
+        else:
+            warnings.warn("Both iteration and time given. Using iteration.")
+            qtt = self.get(iteration, Y)
+            t = self.get(iteration, 't')
+
+        if X == None:
+            xgrid = self.xgrid
+        else:
+            xgrid = X
+
+            if len(xgrid) != len(self.__getitem__('Xgrid')):
+                raise ValueError("Length of provided grid is not equal to the length of the {} array.".format(item))
+
+        if color != None:
+            c = color
+        else:
+            c = 'k'
+        if linestyle != None:
+            ls = linestyle
+        else:
+            ls = '-'
+
+        fig, ax = plt.subplots()
+        plt.plot(xgrid, qtt, color = c, linestyle = ls)
+
+        if showHor:
+            plt.axvline(self.hor_loc, color = 'k', linestyle='--', alpha = 0.5)
+
+        if xrange != None:
+            if len(xrange) != 2:
+                raise ValueError("Parameter xrange must be a tuple or list of lenght 2.")
+            plt.xlim(xrange[0], xrange[1])
+            
+            if yrange == None:
+                mask = (xgrid >= xrange[0]) & (xgrid <= xrange[1])
+                bot = np.min(qtt[mask])
+                top = np.max(qtt[mask])
+
+                if np.abs(bot) > np.abs(top):
+                    plt.ylim(bot*1.1, 0)
+                else:
+                    plt.ylim(0, top*1.1)
+
+        if yrange != None:
+            if len(yrange) != 2:
+                raise ValueError("Parameter yrange must be a tuple or list of lenght 2.")
+            plt.ylim(yrange[0], yrange[1])
+
+        if xlabel != None:
+            xl = str(xlabel)
+        else:
+            xl = 'Position'
+        plt.xlabel(xl)
+        
+        if ylabel != None:
+            yl = str(ylabel)
+        else:
+            yl = Y
+        plt.ylabel(yl)
+
+        if title != None:
+            tl = str(title)
+        else:
+            tl = str(Y)
+        plt.title(tl)
+
+        if printTime:
+            textstr = "Time: " + str(np.round(t, 3))
+            props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+            plt.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14, verticalalignment='top', bbox=props)
+
+        if savefig:
+            if name == None:
+                name = f'{str(Y)}_time{np.round(t,3)}.png'
+            if not name[:-4] in ['.png', '.jpg']:
+                name = name + '.png'
+            savepath = os.path.join(savepath, name)
+
+            plt.savefig(savepath, format='png')
+
+        if return_handles:
+            return fig, ax
+
 class GroupWrapper:
-    def __init__(self, group):
+    def __init__(self, group, xgrid):
         self.group = group
+        self.conv = False
+        self.xgrid = xgrid
 
     def __getitem__(self, key):
-        return self.group[key][()]
+
+        if key == 'beta':
+            key = 'B'
+            self.conv = True
+
+        if not self.conv:
+            return self.group[key][()]
+        else:
+            return self.group[key][()] / self.xgrid**2
