@@ -204,8 +204,9 @@ class Sim():
 
         return np.NaN
 
-    def find_peak(self, rho):
-        idx_MAX = sg.find_peaks(rho, height=[1e-2], distance=2)[0][::-1]
+    def find_peak(self, rho, height = [1e-2]):
+        
+        idx_MAX = sg.find_peaks(rho, height=height, distance=2)[0][::-1]
         return idx_MAX[0]
 
     def plot(self, Y, X=None, iteration=None, time=None, color=None, linestyle=None, xrange=None, yrange=None, xlabel=None, ylabel=None, title=None, printTime=True, showHor=False, return_handles=False, savefig=False, name=None, savepath='.'):
