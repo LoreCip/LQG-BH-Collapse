@@ -94,6 +94,19 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
             u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK)
         end do
 
+    ! Full dynamics, open case
+    else if ( idx .eq. 5 ) then
+
+        ! Physical values
+        do i = 1, NX
+            th = heaviside(r0 - x(i))
+            Mass = m*x(i)**3_RK / r0**3_RK * th + m * (1_RK - th)
+            ! E(x)
+            u(NX+i) = + x(i)**2 / a0**2 * th + r0**2 / a0**2 * (1_RK - th)
+            ! B(x)
+            u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK)
+        end do
+
     end if
     
     u(2) = 0_RK
