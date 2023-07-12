@@ -9,6 +9,7 @@ import h5py
 
 import numpy as np
 import scipy.signal as sg
+import scipy.optimize as op
 
 import matplotlib.pyplot as plt
 
@@ -23,13 +24,13 @@ class Sims():
 
         for path in Path(self.root).rglob('*.h5'):
 
-            match = re.search(r"id0_m[\d.]+_dx[\d.]+_xMax[\d.]+_tf[\d.]+_r[\d.]+_a0[\d.]+(?:_corrected(?:_finer)?)?", str(path))
+            match = re.search(r"id[\d]_m[\d.]+_dx[\d.]+_xMax[\d.]+_tf[\d.]+_r[\d.]+_a0[\d.]+(?:_corrected(?:_finer)?)?", str(path))
             if match:
                 key = match.group()
 
-            self.sims[key] = Sim(str(path)[:-18])
+            self.sims[key] = Sim(str(path)[:-18], _name=key)
 
-        self.simslist = list(self.sims.keys())
+        self.keylist = list(self.sims.keys())
 
 
     def check(self, _path):
@@ -37,18 +38,40 @@ class Sims():
             raise NotADirectoryError(errno.ENOTDIR, os.strerror(errno.ENOTDIR), _path)
 
     def __getitem__(self, key):
-        return self.sims[key]
-
-
+        if isinstance(key, str):
+            return self.sims[key]
+        elif isinstance(key, int):
+            return self.sims[self.keylist[key]]
+        elif isinstance(key, float):
+            key = int(key)
+            return self.sims[self.keylist[key]]
+        elif isinstance(key, list) or isinstance(key, np.ndarray):
+            try:
+                key = key.tolist()
+            except AttributeError:
+                pass
+            return [self.__getitem__(k) for k in key]
+        elif isinstance(key, slice):
+            start = key.start or 0
+            stop = key.stop or len(self.keylist)
+            step = key.step or 1
+            return [self.__getitem__(k) for k in range(start, stop, step)]
 
 class Sim():
 
-    def __init__(self, _path):
+    def __init__(self, _path, _name=None):
 
         self.check(_path)
 
         self.path = _path
         self.outpath = os.path.join(_path, 'outputs/output.h5')
+
+        if _name == None:
+            match = re.search(r"id[\d]_m[\d.]+_dx[\d.]+_xMax[\d.]+_tf[\d.]+_r[\d.]+_a0[\d.]+(?:_corrected(?:_finer)?)?", str(_path))
+            if match:
+                self.name = match.group()
+        else:
+            self.name = _name
 
         data = self.readParameters()
         self.id      = int(data[0])
@@ -63,6 +86,7 @@ class Sim():
         self.dOut    = int(data[9])
 
         self.hor_loc = 2 * self.mass
+        self.xb = self.xbounce()
 
         self.outfile = h5py.File(self.outpath, 'r')
         self.iterations = self.sort_groups()
@@ -162,7 +186,16 @@ class Sim():
                                 comments=comment_char,
                                 dtype = float
                             )
-        
+    
+    def xbounce(self):
+
+        def fxb(x, alpha, rs):
+            return 1 + alpha / x**2 - rs / x**3
+
+        return op.brentq(fxb, 
+                        1e-6, 1.5*(self.hor_loc)*(1/3), 
+                        args = (self.r0**2 / self.a0**2, self.hor_loc))
+
     def sort_groups(self):
         group_names = list(self.outfile.keys())
         rl = []
