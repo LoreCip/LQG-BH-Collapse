@@ -50,11 +50,11 @@ def plotting(inputs):
         ax2.plot(X, B)
         ax3.plot(X, eps)
 
-        xlim=[0, 2*m*1.5]
+        xlim=[0, 2*m*2.5]
 
-        ax1.set(xlim=xlim, ylim=determine_y_axis_range(rho))
-        ax2.set(xlim=xlim, ylim=determine_y_axis_range(B))
-        ax3.set(xlim=xlim, ylim=determine_y_axis_range(eps))
+        ax1.set(xlim=xlim, ylim=determine_y_axis_range(rho[100:-100]))
+        ax2.set(xlim=xlim, ylim=determine_y_axis_range(B[100:-100]))
+        ax3.set(xlim=xlim, ylim=determine_y_axis_range(eps[100:-100]))
 
         ax2.set_ylabel('B')
         ax3.set_ylabel(r'$\epsilon^b$')
