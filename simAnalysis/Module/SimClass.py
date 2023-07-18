@@ -13,7 +13,7 @@ import scipy.optimize as op
 
 import matplotlib.pyplot as plt
 
-class Sims():
+class _Sims():
 
     def __init__(self, _path):
 
@@ -28,7 +28,7 @@ class Sims():
             if match:
                 key = match.group()
 
-            self.sims[key] = Sim(str(path)[:-18], _name=key)
+            self.sims[key] = _Sim(str(path)[:-18], _name=key)
 
         self.keylist = list(self.sims.keys())
 
@@ -57,7 +57,7 @@ class Sims():
             step = key.step or 1
             return [self.__getitem__(k) for k in range(start, stop, step)]
 
-class Sim():
+class _Sim():
 
     def __init__(self, _path, _name=None):
 
@@ -190,10 +190,20 @@ class Sim():
     def xbounce(self):
 
         def fxb(x, alpha, rs):
-            return 1 + alpha / x**2 - rs / x**3
-
-        return op.brentq(fxb, 
-                        1e-6, 1.5*(self.hor_loc)*(1/3), 
+            return x**3 + alpha * x - rs
+        
+        try:
+            return op.brentq(fxb, 
+                        1e-6, 3*(self.hor_loc)*(1/3), 
+                        args = (self.r0**2 / self.a0**2, self.hor_loc))
+        except ValueError:
+            psamp = np.linspace(self.xgrid[0], self.xgrid[-1], 1000)
+            sampl = fxb(psamp, self.r0**2 / self.a0**2, self.hor_loc)
+            for i in range(1000):
+                if sampl[i] * samp[i+1] <= 0:
+                    break
+            return op.brentq(fxb, 
+                        self.xgrid[i], self.xgrid[i+1], 
                         args = (self.r0**2 / self.a0**2, self.hor_loc))
 
     def sort_groups(self):
@@ -211,8 +221,6 @@ class Sim():
 
     def find_timeout(self):
 
-        x_min = self.hor_loc**(1/3)
-
         x = self.xgrid
         lx = len(x)
 
@@ -223,9 +231,9 @@ class Sim():
 
             rho = self.get(iter, 'rho')
 
-            cond1 = x > x_min
+            cond1 = x >= self.xb
             skipped = len(cond1) - sum(cond1)
-            cond2 = x < self.hor_loc*1.3
+            cond2 = x <= self.hor_loc*2
             cond = cond1 & cond2
 
             rho = rho[cond]
@@ -238,7 +246,6 @@ class Sim():
         return np.NaN
 
     def find_peak(self, rho, height = [1e-2]):
-        
         idx_MAX = sg.find_peaks(rho, height=height, distance=2)[0][::-1]
         return idx_MAX[0]
 

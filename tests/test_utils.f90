@@ -54,7 +54,7 @@ subroutine test_paramChecker()
     inputs(1) = 500
     call paramChecker(inputs, error_code, error_string)
     call assertIntEqual(4, error_code, "ParamChecker - Test 1.1")
-    true_error_string = "Initial data index not valid. id = 0,1,2,3"
+    true_error_string = "Initial data index not valid. id = 0,1,2,3,4,5"
     call assertStrEqual(true_error_string, error_string, "ParamChecker - Test 1.2")
 
     inputs = true_inputs
@@ -89,7 +89,7 @@ subroutine test_paramChecker()
     inputs(7) = 500
     call paramChecker(inputs, error_code, error_string)
     call assertIntEqual(2, error_code, "ParamChecker - Test 6.1")
-    true_error_string = "Furthest grid point xM must be smaller than 2 * m * a0^2 / r0^2."
+    true_error_string = "For a closed universe, the furthest grid point xM must be smaller than 2 * m * a0^2 / r0^2."
     call assertStrEqual(true_error_string, error_string, "ParamChecker - Test 6.2")
 
 end subroutine test_paramChecker

@@ -89,7 +89,7 @@ subroutine paramChecker(inputs, error_code, error_string)
     tmp = 2_RK * inputs(5) * inputs(4)**2 / inputs(3)**2
     if ( (int(inputs(1)).ne.4) .and. (tmp.lt.inputs(7)) ) then
         error_code = 2
-        error_string = "Furthest grid point xM must be smaller than 2 * m * a0^2 / r0^2."
+        error_string = "For a closed universe, the furthest grid point xM must be smaller than 2 * m * a0^2 / r0^2."
         return
     end if
 

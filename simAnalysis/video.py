@@ -3,6 +3,7 @@ import os
 import warnings
 
 import h5py
+import readSim as rs
 
 import getopt
 from pathlib import Path
@@ -20,9 +21,25 @@ from p_tqdm import p_map
 # 3) input name of out_video
 # 4) option to keep frames
 
+def determine_y_axis_range(data):
+    min_value = np.min(data)
+    max_value = np.max(data)
+
+    if min_value > 0:
+        y_min = 0
+        y_max = max_value * 1.3  # Add some padding above the maximum value
+    elif max_value < 0:
+        y_min = min_value * 1.3  # Add some padding below the minimum value
+        y_max = 0
+    else:
+        y_min = min_value * 1.3  # Add some padding below the minimum value
+        y_max = max_value * 1.3  # Add some padding above the maximum value
+
+    return [y_min, y_max]
+
 def plotting(inputs):
 
-        i, X, B, eps, rho, t = inputs 
+        i, X, B, eps, rho, t, m = inputs 
 
         fig = plt.figure(figsize=(13, 10))
         fig.suptitle(f'Time: {np.round(t, 4)}', fontsize=14)
@@ -33,9 +50,11 @@ def plotting(inputs):
         ax2.plot(X, B)
         ax3.plot(X, eps)
 
-        ax1.set(xlim=[0,50], ylim=[0, min(3, 1.3*np.max(rho))])
-        ax2.set(xlim=[0,50], ylim=[1.3*np.min(B), 0])
-        ax3.set(xlim=[0,50], ylim=[1e-2+1.3*np.min(eps), 1.3*np.max(eps)])
+        xlim=[0, 2*m*1.5]
+
+        ax1.set(xlim=xlim, ylim=determine_y_axis_range(rho))
+        ax2.set(xlim=xlim, ylim=determine_y_axis_range(B))
+        ax3.set(xlim=xlim, ylim=determine_y_axis_range(eps))
 
         ax2.set_ylabel('B')
         ax3.set_ylabel(r'$\epsilon^b$')
@@ -48,35 +67,19 @@ def plotting(inputs):
         plt.savefig(f'./.frames/frame{i:07d}.png')
         plt.close()
 
-def count_h5_groups(file_path):
-    count = 0
+def ProduceInputs(sim, last_line, pline):
 
-    with h5py.File(file_path, 'r') as f:
-        # Recursive function to traverse the HDF5 file structure
-        def traverse_groups(group):
-            nonlocal count
-            count += 1  # Increment count for each group encountered
+    it = np.array(range(last_line, last_line + pline))
+    it = it[it <= sim.niter]
 
-            for key in group.keys():
-                if isinstance(group[key], h5py.Group):
-                    traverse_groups(group[key])  # Recursively visit subgroups
+    X = sim.xgrid
+    Bs = sim.get(it, 'B')
+    ebs = sim.get(it, 'e^b')
+    rhos = sim.get(it, 'rho')
+    ts = sim.get(it, 't')
+    m = sim.mass
 
-        # Start traversing from the root group
-        traverse_groups(f)
-
-    return count
-
-def ProduceInputs(ppath, names, last_line, pline):
-
-    with h5py.File(ppath+'/outputs/output.h5', 'r') as f:
-        X = f['Xgrid'][()]
-
-        if len(names) == 1:
-            out = [(last_line + 1, X, f[str(names[0])]['B'][()], f[str(names[0])]['e^b'][()], f[str(names[0])]['rho'][()], f[str(names[0])]['t'][()])]
-        else:
-            out = [(last_line + i, X, f[str(names[i])]['B'][()], f[str(names[i])]['e^b'][()], f[str(names[i])]['rho'][()], f[str(names[i])]['t'][()]) for i in range(len(names))]
-        
-    return out
+    return [(last_line + i, X, Bs[i], ebs[i], rhos[i], ts[i], m) for i in range(last_line, last_line + pline)]
 
 def GenerateVideo(ppath, n_partitions):
 
@@ -85,26 +88,15 @@ def GenerateVideo(ppath, n_partitions):
 
     Path("./.frames/").mkdir(parents=True, exist_ok=True)
 
+    sim = rs.Sim(ppath)
+
     print('Creating frames.')
     
     last_line = 0
-    p_line = int( count_h5_groups(ppath+'/outputs/output.h5') / n_partitions)
-
-    with h5py.File(ppath+'/outputs/output.h5', 'r') as f:
-        group_names = list(f.keys())
-        rl = []
-        for i in range(len(group_names)):
-            try:
-                int(group_names[i])  # Try converting the element to an integer
-            except ValueError:
-                rl.append(i)  # Remove the element if it cannot be converted
-        for r in rl[::-1]:
-            group_names.pop(r)
-
-    group_names = sorted(group_names, key=int)
-
+    p_line = int( sim.niter / n_partitions)
+    
     for j in range(n_partitions):
-        inputs = ProduceInputs(ppath, group_names[last_line:last_line+p_line], last_line, p_line)
+        inputs = ProduceInputs(sim, last_line, p_line)
         p_map(plotting, inputs)
         last_line += p_line
 
