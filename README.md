@@ -87,7 +87,7 @@ The parameter file contains the following information:
       - ID = `0`, full dynamics for Oppenheimer-Snyder collapse, closed universe
       - ID = `1`, post bounce dynamics for Oppenheimer-Snyder collapse
       - ID = `2`, post bounce dynamics with peaked initial density function
-      - ID = `3`, full dynamics starting from atan density profile
+      - ID = `3`, full dynamics starting from atan density profile nd smooth $e^b$
       - ID = `4`, full dynamics for Oppenheimer-Snyder collapse, flat universe
       - ID = `5`, full dynamics for Oppenheimer-Snyder collapse, open universe
   - Range of values: Any integer value between 0 and 4, inclusive.
@@ -110,7 +110,7 @@ The parameter file contains the following information:
 
 - `Order of WENO`: Order of the Weighted Essentially Non-Oscillatory (WENO) scheme
   - Explanation: Determines the accuracy and stability of the numerical method.
-  - Range of values: Any positive floating-point number.
+  - Range of values: 2 (order 3 is not implemented -yet-).
 
 - `Furthest grid point`: Furthest point on the computational grid
   - Explanation: Specifies the farthest extent of the computational domain.
