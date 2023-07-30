@@ -93,12 +93,8 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
 !$OMP DO SIMD SCHEDULE(STATIC) PRIVATE(i)
         do i = 2, NX-1
             th = heaviside(r0 - x(i))
-            if ((x(i).le.(r0+1_RK)).and.(x(i).ge.(r0-1_RK))) then
-                u(NX+i) = x(i)**3 - (r0 + 2_RK) * x(i)**2 - (r0**2 - 1_RK) * x(i) + r0*(r0 - 1_RK)**2
-                u(NX+i) = u(NX+i) / (4_RK*a0**2)
-            else
-                u(NX+i) = - x(i)**2 / a0**2 * th - r0**2 / a0**2 * (1-th)
-            end if
+            ! E(x)
+            u(NX+i) = - x(i)**2 / a0**2 * th - r0**2 / a0**2 * (1_RK - th)
             ! B(x)
             u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Marray(i) / x(i)**3_RK - 2_RK * u(NX+i) /  x(i)**2_RK)
         end do
