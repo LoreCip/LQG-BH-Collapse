@@ -1,4 +1,4 @@
-# LQG-WENO-Reconstruction
+# LQG-BH-Collapse
 
 This code implements the original formulation of the Weighted Essentially Non-Oscillatory [1] (WENO) to solve the Loop Quantum Gravity equations of a collapsing star under the assumpions of isotropy and uniformity of the matter field.
 It solves the equation
@@ -90,7 +90,7 @@ The parameter file contains the following information:
       - ID = `3`, full dynamics starting from atan density profile nd smooth $e^b$
       - ID = `4`, full dynamics for Oppenheimer-Snyder collapse, flat universe
       - ID = `5`, full dynamics for Oppenheimer-Snyder collapse, open universe
-  - Range of values: Any integer value between 0 and 4, inclusive.
+  - Range of values: Any integer value between 0 and 5, inclusive.
 
 - `Total simulation time`: Total duration of the simulation
   - Explanation: Specifies the length of time the simulation will run.
