@@ -29,6 +29,8 @@ $$
 \end{cases}
 $$
 
+A Python module to manage the simulations is available [here](https://github.com/LoreCip/simRead).
+
 ## How to install
 
 To install the Fortran code run the bash script **make.sh** using the following command
