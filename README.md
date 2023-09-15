@@ -1,4 +1,6 @@
 # LQG-BH-Collapse
+[![DOI](https://zenodo.org/badge/616188237.svg)](https://zenodo.org/badge/latestdoi/616188237)
+
 
 This code implements the original formulation of the Weighted Essentially Non-Oscillatory [1] (WENO) to solve the Loop Quantum Gravity equations of a collapsing star under the assumpions of isotropy and uniformity of the matter field.
 It solves the equation
