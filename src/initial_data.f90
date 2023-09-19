@@ -8,7 +8,7 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
     real(RK), dimension(NX), intent(in) :: x
     real(RK), dimension(2*NX), intent(out):: u
 
-    integer :: i, j
+    integer :: i
     real(RK) :: th, Mass, heaviside, p, tmp
     real(RK), dimension(NX) :: rr, Marray
 
@@ -57,7 +57,7 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
 
     ! Full dynamics, starting from atan density profile
     else if ( idx .eq. 3 ) then
-        
+
         ! Unnormalized density function
         do i = 1, NX
             rr(i) = PI/2_RK - atan(x(i) - r0)
