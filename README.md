@@ -91,7 +91,7 @@ The parameter file contains the following information:
       - ID = `0`, full dynamics for Oppenheimer-Snyder collapse, closed universe
       - ID = `1`, post bounce dynamics for Oppenheimer-Snyder collapse
       - ID = `2`, post bounce dynamics with peaked initial density function
-      - ID = `3`, full dynamics starting from atan density profile nd smooth $e^b$
+      - ID = `3`, full dynamics starting from a general density profile and smooth $e^b$. The profile has to be hardcoded in src/initial_data.f90
       - ID = `4`, full dynamics for Oppenheimer-Snyder collapse, flat universe
       - ID = `5`, full dynamics for Oppenheimer-Snyder collapse, open universe
   - Range of values: Any integer value between 0 and 5, inclusive.
