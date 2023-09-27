@@ -14,7 +14,7 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
 
     real(RK), parameter :: PI=4._RK*DATAN(1._RK), one = 1_RK, zero = 0_RK
 
-    ! Full dynamics, starting from step function
+    ! Full dynamics, OS closed
     if ( idx .eq. 0 ) then
 
         ! Physical values
@@ -27,35 +27,33 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
             u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK)
         end do
 
-    ! Post bounce dynamics, starting from step function
+    ! Full dynamics, OS flat
     else if ( idx .eq. 1 ) then
 
         ! Physical values
-        do i = 1, NX-1
-
+        do i = 1, NX
             th = heaviside(r0 - x(i))
             Mass = m*x(i)**3_RK / r0**3_RK * th + m * (1_RK - th)
             ! E(x)
-            u(NX+i) = - x(i)**2 / a0**2 * th - r0**2 / a0**2 * (1_RK - th)
+            u(NX+i) = 0_RK
             ! B(x)
-            u(i) =  - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK) * (1_RK - th)  &
-                    + x(i)**2 * ( - PI + asin(sqrt(2_RK * Mass / x(i)**3_RK + u(NX+i) / x(i)**2_RK)) ) * th
+            u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK)
         end do
 
-    ! Post bounce dynamics, starting from delta function
+    ! Full dynamics, OS open
     else if ( idx .eq. 2 ) then
 
         ! Physical values
-        do i = 1, NX-1
+        do i = 1, NX
             th = heaviside(r0 - x(i))
+            Mass = m*x(i)**3_RK / r0**3_RK * th + m * (1_RK - th)
             ! E(x)
-            u(NX+i) = - r0**2 / a0**2 * (1_RK - th)
+            u(NX+i) = + x(i)**2 / a0**2 * th + r0**2 / a0**2 * (1_RK - th)
             ! B(x)
-            u(i) =  - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * m / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK) * (1_RK - th)  &
-                    - PI * x(i)**2 * th
+            u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK)
         end do
 
-    ! Full dynamics, starting from atan density profile
+    ! Full dynamics, starting from arbitrary density profile
     else if ( idx .eq. 3 ) then
 
         ! Unnormalized density function
@@ -80,10 +78,7 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
 
         ! Physical values
         xmov = x(1)
-        ! imov = 1
 
-        u(2) = 0_RK
-        u(NX+2) = 0_RK
         do i = 2, NX-1
             th = heaviside(r0 - x(i))
 
@@ -101,44 +96,40 @@ subroutine initial_data(NX, x, dx, m, r0, a0, idx, u)
             if (tmp.gt.1_RK) then
                 u(NX+1:NX+i) = 0_RK
                 u(:i) = - 0.5_RK*x(:i)**2 * acos(1_RK - 4_RK * Marray(:i) / x(:i)**3_RK)
-
                 xmov = x(i)
             else
                 u(i) = - 0.5_RK*x(i)**2 * acos(tmp)
             end if
         end do
 
-        ! Ghosts
-        u(1) = u(2)
-        u(NX) = u(NX-1)
-        u(NX+1) = u(NX+2)
-        u(2*NX) = u(2*NX-1)
-
-    ! Full dynamics, flat case
+        ! Post bounce dynamics, starting from step function
     else if ( idx .eq. 4 ) then
 
         ! Physical values
-        do i = 1, NX
+        do i = 1, NX-1
+
             th = heaviside(r0 - x(i))
             Mass = m*x(i)**3_RK / r0**3_RK * th + m * (1_RK - th)
             ! E(x)
-            u(NX+i) = 0_RK
+            u(NX+i) = - x(i)**2 / a0**2 * th - r0**2 / a0**2 * (1_RK - th)
             ! B(x)
-            u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK)
+            u(i) =  - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK) * (1_RK - th)  &
+                    + x(i)**2 * ( - PI + asin(sqrt(2_RK * Mass / x(i)**3_RK + u(NX+i) / x(i)**2_RK)) ) * th
         end do
 
-    ! Full dynamics, open case
+    ! Post bounce dynamics, starting from delta function
     else if ( idx .eq. 5 ) then
 
         ! Physical values
-        do i = 1, NX
+        do i = 1, NX-1
             th = heaviside(r0 - x(i))
-            Mass = m*x(i)**3_RK / r0**3_RK * th + m * (1_RK - th)
             ! E(x)
-            u(NX+i) = + x(i)**2 / a0**2 * th + r0**2 / a0**2 * (1_RK - th)
+            u(NX+i) = - r0**2 / a0**2 * (1_RK - th)
             ! B(x)
-            u(i) = - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * Mass / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK)
+            u(i) =  - 0.5_RK*x(i)**2 * acos(1_RK - 4_RK * m / x(i)**3_RK - 2_RK * u(NX+i) / x(i)**2_RK) * (1_RK - th)  &
+                    - PI * x(i)**2 * th
         end do
+    
     end if
 
     u(2) = 0_RK

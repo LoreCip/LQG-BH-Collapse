@@ -89,11 +89,11 @@ The parameter file contains the following information:
 - `ID`: Index representing the initial condition
   - Explanation: Identifies the specific initial condition to be used in the simulation.
       - ID = `0`, full dynamics for Oppenheimer-Snyder collapse, closed universe
-      - ID = `1`, post bounce dynamics for Oppenheimer-Snyder collapse
-      - ID = `2`, post bounce dynamics with peaked initial density function
+      - ID = `1`, full dynamics for Oppenheimer-Snyder collapse, flat universe
+      - ID = `2`, full dynamics for Oppenheimer-Snyder collapse, open universe
       - ID = `3`, full dynamics starting from a general density profile and smooth $e^b$. The profile has to be hardcoded in src/initial_data.f90
-      - ID = `4`, full dynamics for Oppenheimer-Snyder collapse, flat universe
-      - ID = `5`, full dynamics for Oppenheimer-Snyder collapse, open universe
+      - ID = `4`, post bounce dynamics starting from a density step function
+      - ID = `5`, post bounce dynamics with peaked initial density function
   - Range of values: Any integer value between 0 and 5, inclusive.
 
 - `Total simulation time`: Total duration of the simulation
